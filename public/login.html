@@ -1,0 +1,164 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Login</title>
+<style>
+  body { font-family: system-ui, sans-serif; background: #f5f5f5; display: flex; justify-content: center; padding-top: 60px; }
+  .card { background: #fff; padding: 32px; border-radius: 8px; box-shadow: 0 1px 4px rgba(0,0,0,0.15); width: 320px; }
+  h1 { font-size: 20px; margin: 0 0 20px; }
+  .tabs { display: flex; margin-bottom: 20px; border-bottom: 1px solid #ddd; }
+  .tab { flex: 1; text-align: center; padding: 8px; cursor: pointer; color: #666; border-bottom: 2px solid transparent; }
+  .tab.active { color: #111; border-bottom-color: #111; font-weight: 600; }
+  form { display: none; flex-direction: column; gap: 10px; }
+  form.active { display: flex; }
+  input { padding: 8px 10px; border: 1px solid #ccc; border-radius: 4px; font-size: 14px; }
+  button { padding: 9px; border: none; border-radius: 4px; background: #111; color: #fff; font-size: 14px; cursor: pointer; }
+  button:hover { background: #333; }
+  .message { margin-top: 14px; font-size: 13px; text-align: center; white-space: pre-wrap; }
+  .message.error { color: #c0392b; }
+  .message.success { color: #1e8449; }
+  .session { display: none; text-align: center; }
+  .session.active { display: block; }
+</style>
+</head>
+<body>
+<div class="card">
+  <h1>Account</h1>
+
+  <div id="authArea">
+    <div class="tabs">
+      <div class="tab active" data-form="signin">Sign In</div>
+      <div class="tab" data-form="signup">Sign Up</div>
+    </div>
+
+    <form id="signin" class="active">
+      <input type="email" name="email" placeholder="Email" required>
+      <input type="password" name="password" placeholder="Password" required>
+      <button type="submit">Sign In</button>
+    </form>
+
+    <form id="signup">
+      <input type="email" name="email" placeholder="Email" required>
+      <input type="password" name="password" placeholder="Password" required>
+      <button type="submit">Sign Up</button>
+    </form>
+
+    <form id="confirm">
+      <input type="email" name="email" placeholder="Email" required>
+      <input type="text" name="code" placeholder="Confirmation code" required>
+      <button type="submit">Confirm Account</button>
+    </form>
+
+    <div id="message" class="message"></div>
+  </div>
+
+  <div id="sessionArea" class="session">
+    <p id="sessionEmail"></p>
+    <button id="signOutBtn">Sign Out</button>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/amazon-cognito-identity-js@6.3.12/dist/amazon-cognito-identity.min.js"></script>
+<script src="/config.js"></script>
+<script>
+  const poolData = {
+    UserPoolId: window.COGNITO_USER_POOL_ID,
+    ClientId: window.COGNITO_CLIENT_ID,
+  };
+  const userPool = new AmazonCognitoIdentity.CognitoUserPool(poolData);
+
+  const tabs = document.querySelectorAll('.tab');
+  const forms = document.querySelectorAll('form');
+  const messageEl = document.getElementById('message');
+  const authArea = document.getElementById('authArea');
+  const sessionArea = document.getElementById('sessionArea');
+  const sessionEmail = document.getElementById('sessionEmail');
+
+  tabs.forEach(tab => {
+    tab.addEventListener('click', () => {
+      tabs.forEach(t => t.classList.remove('active'));
+      forms.forEach(f => f.classList.remove('active'));
+      tab.classList.add('active');
+      document.getElementById(tab.dataset.form).classList.add('active');
+      messageEl.textContent = '';
+    });
+  });
+
+  function showMessage(text, isError) {
+    messageEl.textContent = text;
+    messageEl.className = 'message ' + (isError ? 'error' : 'success');
+  }
+
+  function showConfirmForm(email) {
+    forms.forEach(f => f.classList.remove('active'));
+    tabs.forEach(t => t.classList.remove('active'));
+    const confirmForm = document.getElementById('confirm');
+    confirmForm.classList.add('active');
+    confirmForm.email.value = email;
+  }
+
+  function showSession(email) {
+    authArea.style.display = 'none';
+    sessionArea.classList.add('active');
+    sessionEmail.textContent = 'Signed in as ' + email;
+  }
+
+  function showAuthForms() {
+    authArea.style.display = 'block';
+    sessionArea.classList.remove('active');
+  }
+
+  document.getElementById('signup').addEventListener('submit', (e) => {
+    e.preventDefault();
+    const { email, password } = Object.fromEntries(new FormData(e.target));
+    const attributeList = [
+      new AmazonCognitoIdentity.CognitoUserAttribute({ Name: 'email', Value: email }),
+    ];
+    userPool.signUp(email, password, attributeList, null, (err, result) => {
+      if (err) return showMessage(err.message, true);
+      showMessage('Sign up successful. Check your email for a confirmation code.', false);
+      showConfirmForm(email);
+    });
+  });
+
+  document.getElementById('confirm').addEventListener('submit', (e) => {
+    e.preventDefault();
+    const { email, code } = Object.fromEntries(new FormData(e.target));
+    const cognitoUser = new AmazonCognitoIdentity.CognitoUser({ Username: email, Pool: userPool });
+    cognitoUser.confirmRegistration(code, true, (err) => {
+      if (err) return showMessage(err.message, true);
+      showMessage('Account confirmed. You can now sign in.', false);
+      document.querySelector('.tab[data-form="signin"]').click();
+    });
+  });
+
+  document.getElementById('signin').addEventListener('submit', (e) => {
+    e.preventDefault();
+    const { email, password } = Object.fromEntries(new FormData(e.target));
+    const authDetails = new AmazonCognitoIdentity.AuthenticationDetails({
+      Username: email,
+      Password: password,
+    });
+    const cognitoUser = new AmazonCognitoIdentity.CognitoUser({ Username: email, Pool: userPool });
+    cognitoUser.authenticateUser(authDetails, {
+      onSuccess: () => showSession(email),
+      onFailure: (err) => showMessage(err.message, true),
+    });
+  });
+
+  document.getElementById('signOutBtn').addEventListener('click', () => {
+    const cognitoUser = userPool.getCurrentUser();
+    if (cognitoUser) cognitoUser.signOut();
+    showAuthForms();
+  });
+
+  const currentUser = userPool.getCurrentUser();
+  if (currentUser) {
+    currentUser.getSession((err, session) => {
+      if (!err && session.isValid()) showSession(currentUser.getUsername());
+    });
+  }
+</script>
+</body>
+</html>
