@@ -10,14 +10,20 @@ export default function LoginPage() {
   const [message, setMessage] = useState({ text: '', error: false });
   const [session, setSession] = useState(null);
   const [confirmEmail, setConfirmEmail] = useState('');
+  const [configError, setConfigError] = useState('');
   const userPoolRef = useRef(null);
 
   useEffect(() => {
     if (!sdkReady) return;
-    userPoolRef.current = new window.AmazonCognitoIdentity.CognitoUserPool({
-      UserPoolId: process.env.NEXT_PUBLIC_COGNITO_USER_POOL_ID,
-      ClientId: process.env.NEXT_PUBLIC_COGNITO_CLIENT_ID,
-    });
+    try {
+      userPoolRef.current = new window.AmazonCognitoIdentity.CognitoUserPool({
+        UserPoolId: process.env.NEXT_PUBLIC_COGNITO_USER_POOL_ID,
+        ClientId: process.env.NEXT_PUBLIC_COGNITO_CLIENT_ID,
+      });
+    } catch (err) {
+      setConfigError(err.message);
+      return;
+    }
 
     const currentUser = userPoolRef.current.getCurrentUser();
     if (currentUser) {
@@ -34,6 +40,7 @@ export default function LoginPage() {
 
   function handleSignUp(e) {
     e.preventDefault();
+    if (!userPoolRef.current) return;
     const { email, password } = Object.fromEntries(new FormData(e.target));
     const attributeList = [
       new window.AmazonCognitoIdentity.CognitoUserAttribute({ Name: 'email', Value: email }),
@@ -48,6 +55,7 @@ export default function LoginPage() {
 
   function handleConfirm(e) {
     e.preventDefault();
+    if (!userPoolRef.current) return;
     const { email, code } = Object.fromEntries(new FormData(e.target));
     const cognitoUser = new window.AmazonCognitoIdentity.CognitoUser({
       Username: email,
@@ -62,6 +70,7 @@ export default function LoginPage() {
 
   function handleSignIn(e) {
     e.preventDefault();
+    if (!userPoolRef.current) return;
     const { email, password } = Object.fromEntries(new FormData(e.target));
     const authDetails = new window.AmazonCognitoIdentity.AuthenticationDetails({
       Username: email,
@@ -78,7 +87,7 @@ export default function LoginPage() {
   }
 
   function handleSignOut() {
-    const cognitoUser = userPoolRef.current.getCurrentUser();
+    const cognitoUser = userPoolRef.current?.getCurrentUser();
     if (cognitoUser) cognitoUser.signOut();
     setSession(null);
   }
@@ -92,7 +101,11 @@ export default function LoginPage() {
       <div className={styles.card}>
         <h1 className={styles.heading}>Account</h1>
 
-        {session ? (
+        {configError ? (
+          <div className={`${styles.message} ${styles.messageError}`}>
+            Login is not configured yet: {configError}
+          </div>
+        ) : session ? (
           <div className={styles.session}>
             <p>Signed in as {session}</p>
             <button className={styles.button} onClick={handleSignOut}>
