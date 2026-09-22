@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 import { useCognito } from '../../cognito-context';
 
 export default function ImportLeaguePage() {
@@ -98,11 +99,10 @@ export default function ImportLeaguePage() {
         </ul>
       )}
 
-      {importedLeague?.ownRoster && (
-        <div>
-          <h2>Your Roster</h2>
-          <p>Players: {importedLeague.ownRoster.players.join(', ')}</p>
-        </div>
+      {importedLeague?.league && (
+        <p>
+          <Link href={`/leagues/${importedLeague.league.id}`}>View your roster →</Link>
+        </p>
       )}
     </div>
   );

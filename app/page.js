@@ -27,6 +27,9 @@ export default function Home() {
       <p>Welcome to AutoManager</p>
       <p>Signed in as {session}</p>
       <p>
+        <Link href="/leagues">My Leagues</Link>
+      </p>
+      <p>
         <Link href="/leagues/import">Import a Sleeper league</Link>
       </p>
       <button

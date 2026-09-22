@@ -42,3 +42,10 @@ create table if not exists rosters (
 );
 
 create index if not exists rosters_league_id_idx on rosters(league_id);
+
+-- Auth is Cognito, not Supabase Auth, so there's no auth.uid() for RLS
+-- policies to key off. Access control happens in the Next.js API routes,
+-- consistent with the existing `users` table.
+alter table sleeper_players disable row level security;
+alter table leagues disable row level security;
+alter table rosters disable row level security;
