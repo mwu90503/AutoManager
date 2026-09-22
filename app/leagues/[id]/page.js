@@ -36,6 +36,40 @@ function PlayerSection({ title, players, showSlot }) {
   );
 }
 
+function Recommendations({ irRecommendations, availableByPosition }) {
+  if (!irRecommendations?.length) return null;
+
+  return (
+    <>
+      <h2 className={styles.sectionTitle}>Recommendations</h2>
+      {irRecommendations.map((rec) => {
+        const available = availableByPosition?.[rec.player.position] || [];
+        return (
+          <div key={rec.player.player_id} className={styles.recommendationCard}>
+            <p>
+              <strong>{rec.player.full_name}</strong> ({rec.player.injury_status}) is on your bench.{' '}
+              {rec.irSlotsOpen > 0
+                ? 'Move to IR to free a bench spot.'
+                : 'No open IR slots — consider dropping a bench player instead.'}
+            </p>
+
+            {available.length > 0 && (
+              <>
+                <p className={styles.playerMeta}>Available {rec.player.position}s (unranked):</p>
+                <ul className={styles.list}>
+                  {available.map((c) => (
+                    <PlayerRow key={c.player_id} player={c} />
+                  ))}
+                </ul>
+              </>
+            )}
+          </div>
+        );
+      })}
+    </>
+  );
+}
+
 export default function LeagueRosterPage() {
   const router = useRouter();
   const { id } = useParams();
@@ -74,6 +108,11 @@ export default function LeagueRosterPage() {
         <>
           <h1 className={styles.title}>{data.league.name}</h1>
           <p className={styles.subtitle}>Your Roster</p>
+
+          <Recommendations
+            irRecommendations={data.roster.irRecommendations}
+            availableByPosition={data.roster.availableByPosition}
+          />
 
           <PlayerSection title="Starters" players={data.roster.starters} showSlot />
           <PlayerSection title="Bench" players={data.roster.bench} />

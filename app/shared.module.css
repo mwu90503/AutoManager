@@ -127,6 +127,13 @@
   font-size: 13px;
 }
 
+.recommendationCard {
+  border: 1px solid #111;
+  border-radius: 6px;
+  padding: 12px 14px;
+  margin-bottom: 12px;
+}
+
 .injuryBadge {
   flex: 0 0 auto;
   padding: 1px 6px;

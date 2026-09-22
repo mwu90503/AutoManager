@@ -68,8 +68,42 @@ export async function GET(_request, { params }) {
   const ir = reserveIds.map(resolve).sort(byPosition);
   const taxi = taxiIds.map(resolve).sort(byPosition);
 
+  // Bench players Sleeper marks IR/PUP-eligible that aren't actually on IR
+  // yet — the "you forgot to move this guy" case.
+  const irSlotsTotal = (league.roster_positions || []).filter((p) => p === 'IR').length;
+  const irSlotsOpen = Math.max(irSlotsTotal - reserveIds.length, 0);
+  const irRecommendations = bench
+    .filter((p) => p.injury_status === 'IR' || p.injury_status === 'PUP')
+    .map((p) => ({ player: p, irSlotsOpen }));
+
+  // For each position with a recommendation, surface who else in the
+  // league is unrostered at that spot. This is NOT a ranked "best
+  // pickup" list (no projections data source is wired up) — just who's
+  // actually available, alphabetically, so there's somewhere to start.
+  const availableByPosition = {};
+  if (irRecommendations.length) {
+    const { data: leagueRosters } = await supabase.from('rosters').select('players, reserve, taxi').eq('league_id', id);
+
+    const rosteredIds = new Set(
+      (leagueRosters || []).flatMap((r) => [...(r.players || []), ...(r.reserve || []), ...(r.taxi || [])])
+    );
+
+    const positions = [...new Set(irRecommendations.map((r) => r.player.position).filter(Boolean))];
+    for (const position of positions) {
+      const { data: candidates } = await supabase
+        .from('sleeper_players')
+        .select('player_id, full_name, position, team, injury_status')
+        .eq('position', position)
+        .order('full_name');
+
+      availableByPosition[position] = (candidates || [])
+        .filter((c) => !rosteredIds.has(c.player_id) && !c.injury_status)
+        .slice(0, 15);
+    }
+  }
+
   return NextResponse.json({
     league,
-    roster: { ...roster, starters, bench, ir, taxi },
+    roster: { ...roster, starters, bench, ir, taxi, irRecommendations, availableByPosition },
   });
 }
