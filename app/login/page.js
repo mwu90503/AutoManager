@@ -1,37 +1,20 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
-import Script from 'next/script';
+import { useEffect, useState } from 'react';
+import { useRouter } from 'next/navigation';
+import { useCognito } from '../cognito-context';
 import styles from './login.module.css';
 
 export default function LoginPage() {
-  const [sdkReady, setSdkReady] = useState(false);
+  const router = useRouter();
+  const { configError, session, userPoolRef, refreshSession, signOut } = useCognito();
   const [tab, setTab] = useState('signin');
   const [message, setMessage] = useState({ text: '', error: false });
-  const [session, setSession] = useState(null);
   const [confirmEmail, setConfirmEmail] = useState('');
-  const [configError, setConfigError] = useState('');
-  const userPoolRef = useRef(null);
 
   useEffect(() => {
-    if (!sdkReady) return;
-    try {
-      userPoolRef.current = new window.AmazonCognitoIdentity.CognitoUserPool({
-        UserPoolId: process.env.NEXT_PUBLIC_COGNITO_USER_POOL_ID,
-        ClientId: process.env.NEXT_PUBLIC_COGNITO_CLIENT_ID,
-      });
-    } catch (err) {
-      setConfigError(err.message);
-      return;
-    }
-
-    const currentUser = userPoolRef.current.getCurrentUser();
-    if (currentUser) {
-      currentUser.getSession((err, sess) => {
-        if (!err && sess.isValid()) setSession(currentUser.getUsername());
-      });
-    }
-  }, [sdkReady]);
+    if (session) router.replace('/');
+  }, [session, router]);
 
   function switchTab(next) {
     setTab(next);
@@ -81,23 +64,16 @@ export default function LoginPage() {
       Pool: userPoolRef.current,
     });
     cognitoUser.authenticateUser(authDetails, {
-      onSuccess: () => setSession(email),
+      onSuccess: () => {
+        refreshSession();
+        router.push('/');
+      },
       onFailure: (err) => setMessage({ text: err.message, error: true }),
     });
   }
 
-  function handleSignOut() {
-    const cognitoUser = userPoolRef.current?.getCurrentUser();
-    if (cognitoUser) cognitoUser.signOut();
-    setSession(null);
-  }
-
   return (
     <div className={styles.page}>
-      <Script
-        src="https://cdn.jsdelivr.net/npm/amazon-cognito-identity-js@6.3.12/dist/amazon-cognito-identity.min.js"
-        onReady={() => setSdkReady(true)}
-      />
       <div className={styles.card}>
         <h1 className={styles.heading}>Account</h1>
 
@@ -108,7 +84,7 @@ export default function LoginPage() {
         ) : session ? (
           <div className={styles.session}>
             <p>Signed in as {session}</p>
-            <button className={styles.button} onClick={handleSignOut}>
+            <button className={styles.button} onClick={signOut}>
               Sign Out
             </button>
           </div>
