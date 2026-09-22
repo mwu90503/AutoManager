@@ -13,8 +13,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata = {
-  title: "HelloWorld",
-  description: "HelloWorld app",
+  title: "AutoManager",
+  description: "AutoManager — your fantasy football manager assistant",
 };
 
 export default function RootLayout({ children }) {

@@ -23,7 +23,7 @@ export default function Home() {
 
   return (
     <div>
-      <p>Hello World!</p>
+      <p>Welcome to AutoManager</p>
       <p>Signed in as {session}</p>
       <button
         onClick={() => {
