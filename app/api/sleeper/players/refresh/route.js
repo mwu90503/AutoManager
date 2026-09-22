@@ -19,6 +19,7 @@ export async function GET(request) {
       full_name: p.full_name || `${p.first_name || ''} ${p.last_name || ''}`.trim(),
       position: p.position,
       team: p.team,
+      injury_status: p.injury_status || null,
       updated_at: new Date().toISOString(),
     }));
 

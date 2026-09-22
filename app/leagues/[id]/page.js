@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { useCognito } from '../../cognito-context';
+import { injuryAbbreviation } from '../../../lib/injuryStatus';
 import styles from '../../shared.module.css';
 
 function PlayerRow({ player, slot }) {
@@ -13,6 +14,9 @@ function PlayerRow({ player, slot }) {
       <div className={styles.playerName}>{player.full_name}</div>
       {(player.position || player.team) && (
         <div className={styles.playerMeta}>{[player.position, player.team].filter(Boolean).join(' — ')}</div>
+      )}
+      {player.injury_status && (
+        <div className={styles.injuryBadge}>{injuryAbbreviation(player.injury_status)}</div>
       )}
     </li>
   );

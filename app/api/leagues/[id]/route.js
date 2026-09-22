@@ -32,7 +32,7 @@ export async function GET(_request, { params }) {
 
   const { data: players, error: playersError } = await supabase
     .from('sleeper_players')
-    .select('player_id, full_name, position, team')
+    .select('player_id, full_name, position, team, injury_status')
     .in('player_id', allIds.length ? allIds : ['']);
 
   if (playersError) {
@@ -41,7 +41,7 @@ export async function GET(_request, { params }) {
 
   const playerById = new Map(players.map((p) => [p.player_id, p]));
   const resolve = (pid) =>
-    playerById.get(pid) || { player_id: pid, full_name: pid, position: null, team: null };
+    playerById.get(pid) || { player_id: pid, full_name: pid, position: null, team: null, injury_status: null };
 
   const starterIds = roster.starters || [];
   const reserveIds = roster.reserve || [];
