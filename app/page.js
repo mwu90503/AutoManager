@@ -2,6 +2,7 @@
 
 import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 import { useCognito } from './cognito-context';
 
 export default function Home() {
@@ -25,6 +26,9 @@ export default function Home() {
     <div>
       <p>Welcome to AutoManager</p>
       <p>Signed in as {session}</p>
+      <p>
+        <Link href="/leagues/import">Import a Sleeper league</Link>
+      </p>
       <button
         onClick={() => {
           signOut();
