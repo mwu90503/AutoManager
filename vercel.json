@@ -6,7 +6,7 @@
     },
     {
       "path": "/api/sleeper/leagues/refresh",
-      "schedule": "0 */6 * * *"
+      "schedule": "0 9 * * *"
     }
   ]
 }

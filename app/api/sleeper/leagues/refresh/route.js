@@ -4,9 +4,12 @@ import { importLeague } from '@/lib/sleeperImport';
 import { isInSeason } from '@/lib/sleeperSeason';
 
 // Vercel Cron issues GET requests and sends `Authorization: Bearer $CRON_SECRET`.
-// Scheduled to fire every 6 hours; outside the season it only actually
-// refreshes once a day (the midnight-UTC firing) since rosters don't
-// change when nobody's setting lineups or working waivers.
+// Vercel's Hobby plan caps cron jobs at once a day, so this fires daily
+// and self-throttles further in the offseason: every day during the
+// season (Aug-Jan), but only on Mondays the rest of the year, since
+// nothing changes when nobody's setting lineups or working waivers.
+// (Upgrading to Pro would allow firing - and refreshing - more than once
+// a day during the season, if that's ever worth it.)
 export async function GET(request) {
   const authHeader = request.headers.get('authorization');
   if (authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
@@ -14,8 +17,8 @@ export async function GET(request) {
   }
 
   const now = new Date();
-  if (!isInSeason(now) && now.getUTCHours() !== 0) {
-    return NextResponse.json({ skipped: 'offseason, not the daily run' });
+  if (!isInSeason(now) && now.getUTCDay() !== 1) {
+    return NextResponse.json({ skipped: 'offseason, weekly run only (Mondays)' });
   }
 
   const { data: leagues, error: leaguesError } = await supabase
