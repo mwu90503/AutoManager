@@ -48,6 +48,8 @@ export async function POST(request) {
     team_name: teamNameByOwnerId.get(r.owner_id) || null,
     players: r.players || [],
     starters: r.starters || [],
+    reserve: r.reserve || [],
+    taxi: r.taxi || [],
     wins: r.settings?.wins || 0,
     losses: r.settings?.losses || 0,
     ties: r.settings?.ties || 0,

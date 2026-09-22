@@ -6,6 +6,32 @@ import Link from 'next/link';
 import { useCognito } from '../../cognito-context';
 import styles from '../../shared.module.css';
 
+function PlayerRow({ player, slot }) {
+  return (
+    <li className={styles.playerRow}>
+      {slot && <div className={styles.slotLabel}>{slot}</div>}
+      <div className={styles.playerName}>{player.full_name}</div>
+      {(player.position || player.team) && (
+        <div className={styles.playerMeta}>{[player.position, player.team].filter(Boolean).join(' — ')}</div>
+      )}
+    </li>
+  );
+}
+
+function PlayerSection({ title, players, showSlot }) {
+  if (!players?.length) return null;
+  return (
+    <>
+      <h2 className={styles.sectionTitle}>{title}</h2>
+      <ul className={styles.list}>
+        {players.map((p, i) => (
+          <PlayerRow key={`${p.player_id}-${i}`} player={p} slot={showSlot ? p.slot : null} />
+        ))}
+      </ul>
+    </>
+  );
+}
+
 export default function LeagueRosterPage() {
   const router = useRouter();
   const { id } = useParams();
@@ -44,18 +70,11 @@ export default function LeagueRosterPage() {
         <>
           <h1 className={styles.title}>{data.league.name}</h1>
           <p className={styles.subtitle}>Your Roster</p>
-          <ul className={styles.list}>
-            {data.roster.resolvedPlayers.map((p) => (
-              <li key={p.player_id} className={styles.playerRow}>
-                <div className={styles.playerName}>{p.full_name}</div>
-                {(p.position || p.team) && (
-                  <div className={styles.playerMeta}>
-                    {[p.position, p.team].filter(Boolean).join(' — ')}
-                  </div>
-                )}
-              </li>
-            ))}
-          </ul>
+
+          <PlayerSection title="Starters" players={data.roster.starters} showSlot />
+          <PlayerSection title="Bench" players={data.roster.bench} />
+          <PlayerSection title="IR" players={data.roster.ir} />
+          <PlayerSection title="Taxi Squad" players={data.roster.taxi} />
         </>
       )}
     </div>
