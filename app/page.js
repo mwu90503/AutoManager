@@ -4,6 +4,7 @@ import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { useCognito } from './cognito-context';
+import styles from './shared.module.css';
 
 export default function Home() {
   const router = useRouter();
@@ -15,7 +16,11 @@ export default function Home() {
   }, [sdkReady, configError, session, router]);
 
   if (configError) {
-    return <p>Login is not configured yet: {configError}</p>;
+    return (
+      <div className={styles.container}>
+        <p className={styles.error}>Login is not configured yet: {configError}</p>
+      </div>
+    );
   }
 
   if (!sdkReady || session === undefined || session === null) {
@@ -23,16 +28,23 @@ export default function Home() {
   }
 
   return (
-    <div>
-      <p>Welcome to AutoManager</p>
-      <p>Signed in as {session}</p>
-      <p>
-        <Link href="/leagues">My Leagues</Link>
+    <div className={styles.container}>
+      <h1 className={styles.title}>AutoManager</h1>
+      <p className={styles.subtitle}>Signed in as {session}</p>
+
+      <p className={styles.linkRow}>
+        <Link className={styles.link} href="/leagues">
+          My Leagues
+        </Link>
       </p>
-      <p>
-        <Link href="/leagues/import">Import a Sleeper league</Link>
+      <p className={styles.linkRow}>
+        <Link className={styles.link} href="/leagues/import">
+          Import a Sleeper league
+        </Link>
       </p>
+
       <button
+        className={styles.buttonSmall}
         onClick={() => {
           signOut();
           router.push('/login');

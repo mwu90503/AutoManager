@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { useCognito } from '../../cognito-context';
+import styles from '../../shared.module.css';
 
 export default function ImportLeaguePage() {
   const router = useRouter();
@@ -70,28 +71,38 @@ export default function ImportLeaguePage() {
   }
 
   return (
-    <div>
-      <h1>Import a Sleeper League</h1>
+    <div className={styles.container}>
+      <h1 className={styles.title}>Import a Sleeper League</h1>
+      <p className={styles.linkRow}>
+        <Link className={styles.link} href="/leagues">
+          ← My Leagues
+        </Link>
+      </p>
 
-      <form onSubmit={handleLookup}>
+      <form className={styles.form} onSubmit={handleLookup}>
         <input
+          className={styles.input}
           type="text"
           placeholder="Sleeper username"
           value={username}
           onChange={(e) => setUsername(e.target.value)}
           required
         />
-        <button type="submit">Find Leagues</button>
+        <button className={styles.button} type="submit">
+          Find Leagues
+        </button>
       </form>
 
-      {status.text && <p style={{ color: status.error ? 'crimson' : 'inherit' }}>{status.text}</p>}
+      {status.text && (
+        <p className={`${styles.message} ${status.error ? styles.error : ''}`}>{status.text}</p>
+      )}
 
       {leagues.length > 0 && (
-        <ul>
+        <ul className={styles.list}>
           {leagues.map((league) => (
-            <li key={league.id}>
-              {league.name}{' '}
-              <button type="button" onClick={() => handleImport(league.id)}>
+            <li key={league.id} className={styles.listItem}>
+              {league.name}
+              <button className={styles.buttonSmall} type="button" onClick={() => handleImport(league.id)}>
                 Import
               </button>
             </li>
@@ -100,8 +111,10 @@ export default function ImportLeaguePage() {
       )}
 
       {importedLeague?.league && (
-        <p>
-          <Link href={`/leagues/${importedLeague.league.id}`}>View your roster →</Link>
+        <p className={styles.linkRow}>
+          <Link className={styles.link} href={`/leagues/${importedLeague.league.id}`}>
+            View your roster →
+          </Link>
         </p>
       )}
     </div>

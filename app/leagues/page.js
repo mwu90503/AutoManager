@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { useCognito } from '../cognito-context';
+import styles from '../shared.module.css';
 
 export default function LeaguesPage() {
   const router = useRouter();
@@ -27,19 +28,21 @@ export default function LeaguesPage() {
   }
 
   return (
-    <div>
-      <h1>My Leagues</h1>
-      <p>
-        <Link href="/leagues/import">Import another league</Link>
+    <div className={styles.container}>
+      <h1 className={styles.title}>My Leagues</h1>
+      <p className={styles.linkRow}>
+        <Link className={styles.link} href="/leagues/import">
+          Import another league
+        </Link>
       </p>
 
       {leagues === null && <p>Loading...</p>}
-      {leagues?.length === 0 && <p>No leagues imported yet.</p>}
+      {leagues?.length === 0 && <p className={styles.subtitle}>No leagues imported yet.</p>}
       {leagues?.length > 0 && (
-        <ul>
+        <ul className={styles.list}>
           {leagues.map((league) => (
-            <li key={league.id}>
-              <Link href={`/leagues/${league.id}`}>
+            <li key={league.id} className={styles.listItem}>
+              <Link className={styles.link} href={`/leagues/${league.id}`}>
                 {league.name} ({league.season})
               </Link>
             </li>
