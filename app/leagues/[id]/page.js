@@ -36,14 +36,24 @@ function PlayerSection({ title, players, showSlot }) {
   );
 }
 
-function Recommendations({ irRecommendations, availableByPosition, byeAlerts }) {
+function Recommendations({ irRecommendations, availableByPosition, byeAlerts, openBenchSlots }) {
   const hasIr = irRecommendations?.length > 0;
   const hasBye = byeAlerts?.length > 0;
-  if (!hasIr && !hasBye) return null;
+  const hasOpenSlot = openBenchSlots > 0;
+  if (!hasIr && !hasBye && !hasOpenSlot) return null;
 
   return (
     <>
       <h2 className={styles.sectionTitle}>Recommendations</h2>
+
+      {hasOpenSlot && (
+        <div className={styles.recommendationCard}>
+          <p>
+            You have {openBenchSlots} open bench slot{openBenchSlots > 1 ? 's' : ''} — room to pick up a free agent
+            without dropping anyone.
+          </p>
+        </div>
+      )}
 
       {byeAlerts.map((alert) => (
         <div key={`bye-${alert.player.player_id}`} className={styles.recommendationCard}>
@@ -136,6 +146,7 @@ export default function LeagueRosterPage() {
             irRecommendations={data.roster.irRecommendations}
             availableByPosition={data.roster.availableByPosition}
             byeAlerts={data.roster.byeAlerts}
+            openBenchSlots={data.roster.openBenchSlots}
           />
 
           <PlayerSection title="Starters" players={data.roster.starters} showSlot />

@@ -123,8 +123,24 @@ export async function GET(_request, { params }) {
     }
   }
 
+  // Active roster (starters + bench, not IR/taxi) has room for a
+  // free-agent pickup with no drop needed.
+  const activeSlotsTotal = (league.roster_positions || []).filter((p) => p !== 'IR' && p !== 'TAXI').length;
+  const activeSlotsUsed = starters.length + bench.length;
+  const openBenchSlots = Math.max(activeSlotsTotal - activeSlotsUsed, 0);
+
   return NextResponse.json({
     league,
-    roster: { ...roster, starters, bench, ir, taxi, irRecommendations, availableByPosition, byeAlerts },
+    roster: {
+      ...roster,
+      starters,
+      bench,
+      ir,
+      taxi,
+      irRecommendations,
+      availableByPosition,
+      byeAlerts,
+      openBenchSlots,
+    },
   });
 }
