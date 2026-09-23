@@ -36,12 +36,35 @@ function PlayerSection({ title, players, showSlot }) {
   );
 }
 
-function Recommendations({ irRecommendations, availableByPosition }) {
-  if (!irRecommendations?.length) return null;
+function Recommendations({ irRecommendations, availableByPosition, byeAlerts }) {
+  const hasIr = irRecommendations?.length > 0;
+  const hasBye = byeAlerts?.length > 0;
+  if (!hasIr && !hasBye) return null;
 
   return (
     <>
       <h2 className={styles.sectionTitle}>Recommendations</h2>
+
+      {byeAlerts.map((alert) => (
+        <div key={`bye-${alert.player.player_id}`} className={styles.recommendationCard}>
+          <p>
+            <strong>{alert.player.full_name}</strong> ({alert.player.team}) is on bye in Week {alert.byeWeek}
+            {alert.byeWeek === alert.currentWeek ? ' — this week' : ' — next week'}. Swap him out before kickoff.
+          </p>
+
+          {alert.benchOptions.length > 0 && (
+            <>
+              <p className={styles.playerMeta}>On your bench at {alert.player.position}:</p>
+              <ul className={styles.list}>
+                {alert.benchOptions.map((b) => (
+                  <PlayerRow key={b.player_id} player={b} />
+                ))}
+              </ul>
+            </>
+          )}
+        </div>
+      ))}
+
       {irRecommendations.map((rec) => {
         const available = availableByPosition?.[rec.player.position] || [];
         return (
@@ -112,6 +135,7 @@ export default function LeagueRosterPage() {
           <Recommendations
             irRecommendations={data.roster.irRecommendations}
             availableByPosition={data.roster.availableByPosition}
+            byeAlerts={data.roster.byeAlerts}
           />
 
           <PlayerSection title="Starters" players={data.roster.starters} showSlot />

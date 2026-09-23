@@ -1,6 +1,8 @@
 import { NextResponse } from 'next/server';
 import { supabase } from '@/lib/supabaseClient';
 import { positionRank } from '@/lib/positionOrder';
+import { byeWeekFor } from '@/lib/byeWeeks';
+import { getNflState } from '@/lib/sleeperClient';
 
 export async function GET(_request, { params }) {
   const { id } = await params;
@@ -102,8 +104,27 @@ export async function GET(_request, { params }) {
     }
   }
 
+  // Starters whose team's bye is this week or next — enough notice to
+  // swap them out before kickoff. Only starters matter here; a bye for
+  // someone already on the bench doesn't cost you anything.
+  const nflState = await getNflState().catch(() => null);
+  const byeAlerts = [];
+  if (nflState?.season_type === 'regular') {
+    for (const p of starters) {
+      const byeWeek = byeWeekFor(p.team, league.season);
+      if (byeWeek == null) continue;
+      const weeksOut = byeWeek - nflState.week;
+      if (weeksOut < 0 || weeksOut > 1) continue;
+
+      const benchOptions = bench.filter(
+        (b) => b.position === p.position && byeWeekFor(b.team, league.season) !== nflState.week
+      );
+      byeAlerts.push({ player: p, byeWeek, currentWeek: nflState.week, benchOptions });
+    }
+  }
+
   return NextResponse.json({
     league,
-    roster: { ...roster, starters, bench, ir, taxi, irRecommendations, availableByPosition },
+    roster: { ...roster, starters, bench, ir, taxi, irRecommendations, availableByPosition, byeAlerts },
   });
 }
