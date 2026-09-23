@@ -271,10 +271,19 @@ export default function LeagueRosterPage() {
 
   async function handleEmail() {
     setEmailStatus({ text: 'Sending...', error: false });
+    // Taxi recommendations are the one type where a dismissal means "I
+    // want this player active, stop suggesting it" rather than "handled
+    // for now" - so those (and only those) also drop out of the email.
+    const roster = {
+      ...data.roster,
+      taxiRecommendations: (data.roster.taxiRecommendations || []).filter(
+        (rec) => !dismissed.has(`taxi-${rec.player.player_id}`)
+      ),
+    };
     const res = await fetch('/api/notifications/send', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ league: data.league, roster: data.roster }),
+      body: JSON.stringify({ league: data.league, roster }),
     });
     const json = await res.json();
     setEmailStatus(
