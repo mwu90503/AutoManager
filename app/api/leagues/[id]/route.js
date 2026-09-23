@@ -151,13 +151,17 @@ export async function GET(_request, { params }) {
 
   // Bench players still young enough for taxi (Sleeper's taxi_years
   // setting) that aren't parked there yet - wasting a bench spot on a
-  // stash that doesn't need one.
+  // stash that doesn't need one. Excludes anyone with an injury status:
+  // taxi is for healthy unproven players, not an alternative to IR - a
+  // hurt rookie should go on IR (or stay put), not taxi.
   const taxiYears = league.settings?.taxi_years;
   const taxiSlotsTotal = league.settings?.taxi_slots ?? 0;
   const taxiSlotsOpen = Math.max(taxiSlotsTotal - taxiIds.length, 0);
   const taxiRecommendations =
     taxiSlotsTotal > 0 && taxiYears != null
-      ? bench.filter((p) => p.years_exp != null && p.years_exp <= taxiYears).map((p) => ({ player: p, taxiSlotsOpen }))
+      ? bench
+          .filter((p) => p.years_exp != null && p.years_exp <= taxiYears && !p.injury_status)
+          .map((p) => ({ player: p, taxiSlotsOpen }))
       : [];
 
   const emptyStarterSlots = starters.filter((s) => s.isEmpty);
