@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { sendEmail } from '@/lib/ses';
-import { formatRecommendationsEmail } from '@/lib/emailFormat';
+import { formatDigestEmail } from '@/lib/emailFormat';
 
 export async function POST(request) {
   const { league, roster } = await request.json();
@@ -8,7 +8,7 @@ export async function POST(request) {
     return NextResponse.json({ error: 'league and roster are required' }, { status: 400 });
   }
 
-  const { subject, text } = formatRecommendationsEmail(league, roster);
+  const { subject, text } = formatDigestEmail([{ league, roster }], 'all', `AutoManager: ${league.name} recommendations`);
 
   try {
     await sendEmail({ subject, text });

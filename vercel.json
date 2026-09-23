@@ -7,6 +7,14 @@
     {
       "path": "/api/sleeper/leagues/refresh",
       "schedule": "0 9 * * *"
+    },
+    {
+      "path": "/api/notifications/weekly",
+      "schedule": "0 14 * * 0,2,4"
+    },
+    {
+      "path": "/api/notifications/daily-critical",
+      "schedule": "0 14 * * *"
     }
   ]
 }
