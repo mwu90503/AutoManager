@@ -128,22 +128,27 @@ export async function GET(_request, { params }) {
   const nflState = await getNflState().catch(() => null);
   const isRegularSeason = nflState?.season_type === 'regular';
 
+  // Doubtful means "almost certainly won't play" in practice, so it's
+  // treated as a hard swap alongside Out/IR/PUP, not a soft warning.
+  const SIT_STATUSES = ['Out', 'IR', 'PUP', 'Doubtful'];
+
   // Bench candidates for a compromised starter: eligible for that exact
   // slot (accounting for FLEX/SUPER_FLEX accepting multiple positions,
-  // not just an exact position match) and not themselves Out/IR/PUP or
+  // not just an exact position match) and not themselves sit-worthy or
   // on bye that week.
   function findBenchReplacements(starter) {
     const eligible = eligiblePositionsForSlot(starter.slot);
     return bench.filter((b) => {
       if (!eligible.includes(b.position)) return false;
-      if (b.injury_status === 'Out' || b.injury_status === 'IR' || b.injury_status === 'PUP') return false;
+      if (SIT_STATUSES.includes(b.injury_status)) return false;
       if (isRegularSeason && byeWeekFor(b.team, league.season) === nflState.week) return false;
       return true;
     });
   }
 
-  // Starters guaranteed to score zero this week: on bye (this week or
-  // next, for advance notice), or ruled Out/IR/PUP right now.
+  // Starters guaranteed (or near-guaranteed) to score zero this week: on
+  // bye (this week or next, for advance notice), or ruled Out/IR/PUP/
+  // Doubtful right now.
   const byeAlerts = [];
   const criticalStatusStarters = [];
   if (isRegularSeason) {
@@ -157,7 +162,7 @@ export async function GET(_request, { params }) {
         continue;
       }
 
-      if (p.injury_status === 'Out' || p.injury_status === 'IR' || p.injury_status === 'PUP') {
+      if (SIT_STATUSES.includes(p.injury_status)) {
         criticalStatusStarters.push({ player: p, benchOptions: findBenchReplacements(p) });
       }
     }
@@ -166,7 +171,7 @@ export async function GET(_request, { params }) {
   // Starters at real but non-guaranteed risk — a heads-up to double
   // check before kickoff, not a hard "swap them out" like the above.
   const riskyStatusStarters = starters
-    .filter((p) => !p.isEmpty && (p.injury_status === 'Doubtful' || p.injury_status === 'Questionable'))
+    .filter((p) => !p.isEmpty && p.injury_status === 'Questionable')
     .map((p) => ({ player: p, benchOptions: findBenchReplacements(p) }));
 
   // Active roster (starters + bench, not IR/taxi) has room for a
