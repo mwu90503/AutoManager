@@ -82,6 +82,7 @@ function Recommendations({
   byeAlerts,
   criticalStatusStarters,
   riskyStatusStarters,
+  lineupSwapRecommendations,
   openBenchSlots,
   taxiRecommendations,
   emptyStarterSlots,
@@ -93,6 +94,7 @@ function Recommendations({
   const hasCritical = criticalStatusStarters?.length > 0;
   const hasBye = byeAlerts?.length > 0;
   const hasRisky = riskyStatusStarters?.length > 0;
+  const hasSwap = lineupSwapRecommendations?.length > 0;
   const hasOpenSlot = openBenchSlots > 0;
   const hasIr = irRecommendations?.length > 0;
   const hasHealthyOnIr = healthyOnIr?.length > 0;
@@ -102,6 +104,7 @@ function Recommendations({
     !hasCritical &&
     !hasBye &&
     !hasRisky &&
+    !hasSwap &&
     !hasOpenSlot &&
     !hasIr &&
     !hasHealthyOnIr &&
@@ -158,6 +161,22 @@ function Recommendations({
               verify they're playing before kickoff.
             </p>
             <BenchOptions slot={rec.player.slot} options={rec.benchOptions} />
+          </Card>
+        ))}
+
+      {hasSwap &&
+        lineupSwapRecommendations.map((rec) => (
+          <Card
+            key={`swap-${rec.starter.player_id}`}
+            id={`swap-${rec.starter.player_id}-${rec.bench.player_id}`}
+            {...cardProps}
+          >
+            <p>
+              <strong>{rec.bench.full_name}</strong> is projected for {rec.benchPoints.toFixed(1)} pts vs{' '}
+              <strong>{rec.starter.full_name}</strong>'s {rec.starterPoints.toFixed(1)} pts in your{' '}
+              <strong>{rec.starter.slot}</strong> slot — a {(rec.benchPoints - rec.starterPoints).toFixed(1)} point
+              gap. Consider starting {rec.bench.full_name} instead.
+            </p>
           </Card>
         ))}
 
@@ -335,6 +354,7 @@ export default function LeagueRosterPage() {
             byeAlerts={data.roster.byeAlerts}
             criticalStatusStarters={data.roster.criticalStatusStarters}
             riskyStatusStarters={data.roster.riskyStatusStarters}
+            lineupSwapRecommendations={data.roster.lineupSwapRecommendations}
             openBenchSlots={data.roster.openBenchSlots}
             taxiRecommendations={data.roster.taxiRecommendations}
             emptyStarterSlots={data.roster.emptyStarterSlots}
