@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { supabase } from '@/lib/supabaseClient';
 import { positionRank } from '@/lib/positionOrder';
 import { byeWeekFor } from '@/lib/byeWeeks';
+import { isReserveEligible } from '@/lib/injuryStatus';
 import { getNflState } from '@/lib/sleeperClient';
 
 export async function GET(_request, { params }) {
@@ -86,12 +87,15 @@ export async function GET(_request, { params }) {
   const ir = reserveIds.map(resolve).sort(byPosition);
   const taxi = taxiIds.map(resolve).sort(byPosition);
 
-  // Bench players Sleeper marks IR/PUP-eligible that aren't actually on IR
-  // yet — the "you forgot to move this guy" case.
-  const irSlotsTotal = (league.roster_positions || []).filter((p) => p === 'IR').length;
+  // Bench players eligible for a reserve/IR slot (IR/PUP always qualify;
+  // other statuses like Out only count if the league's settings allow it)
+  // that aren't actually on IR yet — the "you forgot to move this guy"
+  // case. IR slot count lives in league.settings.reserve_slots, not
+  // roster_positions (same as taxi_slots - neither is listed there).
+  const irSlotsTotal = league.settings?.reserve_slots ?? 0;
   const irSlotsOpen = Math.max(irSlotsTotal - reserveIds.length, 0);
   const irRecommendations = bench
-    .filter((p) => p.injury_status === 'IR' || p.injury_status === 'PUP')
+    .filter((p) => isReserveEligible(p.injury_status, league.settings))
     .map((p) => ({ player: p, irSlotsOpen }));
 
   // For each position with a recommendation, surface who else in the
