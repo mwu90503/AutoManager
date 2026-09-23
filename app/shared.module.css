@@ -128,10 +128,32 @@
 }
 
 .recommendationCard {
+  position: relative;
   border: 1px solid #111;
   border-radius: 6px;
-  padding: 12px 14px;
+  padding: 12px 32px 12px 14px;
   margin-bottom: 12px;
+}
+
+.dismissButton {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  width: 20px;
+  height: 20px;
+  line-height: 18px;
+  padding: 0;
+  border: 1px solid #ccc;
+  border-radius: 50%;
+  background: #fff;
+  color: #666;
+  font-size: 14px;
+  cursor: pointer;
+}
+
+.dismissButton:hover {
+  border-color: #111;
+  color: #111;
 }
 
 .injuryBadge {

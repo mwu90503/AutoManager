@@ -45,6 +45,23 @@ function PlayerSection({ title, players, showSlot }) {
   );
 }
 
+function Card({ id, dismissed, onDismiss, children }) {
+  if (dismissed.has(id)) return null;
+  return (
+    <div className={styles.recommendationCard}>
+      <button
+        type="button"
+        className={styles.dismissButton}
+        onClick={() => onDismiss(id)}
+        aria-label="Dismiss"
+      >
+        ×
+      </button>
+      {children}
+    </div>
+  );
+}
+
 function Recommendations({
   irRecommendations,
   availableByPosition,
@@ -52,6 +69,8 @@ function Recommendations({
   openBenchSlots,
   taxiRecommendations,
   emptyStarterSlots,
+  dismissed,
+  onDismiss,
 }) {
   const hasEmpty = emptyStarterSlots?.length > 0;
   const hasIr = irRecommendations?.length > 0;
@@ -60,30 +79,32 @@ function Recommendations({
   const hasTaxi = taxiRecommendations?.length > 0;
   if (!hasEmpty && !hasIr && !hasBye && !hasOpenSlot && !hasTaxi) return null;
 
+  const cardProps = { dismissed, onDismiss };
+
   return (
     <>
       <h2 className={styles.sectionTitle}>Recommendations</h2>
 
       {hasEmpty &&
         emptyStarterSlots.map((s, i) => (
-          <div key={`empty-${i}`} className={styles.recommendationCard}>
+          <Card key={`empty-${i}`} id={`empty-${i}`} {...cardProps}>
             <p>
               Your <strong>{s.slot}</strong> slot is empty — that's guaranteed zero points. Fill it before kickoff.
             </p>
-          </div>
+          </Card>
         ))}
 
       {hasOpenSlot && (
-        <div className={styles.recommendationCard}>
+        <Card id="open-bench-slot" {...cardProps}>
           <p>
             You have {openBenchSlots} open bench slot{openBenchSlots > 1 ? 's' : ''} — room to pick up a free agent
             without dropping anyone.
           </p>
-        </div>
+        </Card>
       )}
 
       {byeAlerts.map((alert) => (
-        <div key={`bye-${alert.player.player_id}`} className={styles.recommendationCard}>
+        <Card key={`bye-${alert.player.player_id}`} id={`bye-${alert.player.player_id}`} {...cardProps}>
           <p>
             <strong>{alert.player.full_name}</strong> ({alert.player.team}) is on bye in Week {alert.byeWeek}
             {alert.byeWeek === alert.currentWeek ? ' — this week' : ' — next week'}.{' '}
@@ -102,25 +123,27 @@ function Recommendations({
               </ul>
             </>
           )}
-        </div>
+        </Card>
       ))}
 
       {hasTaxi &&
         taxiRecommendations.map((rec) => (
-          <div key={`taxi-${rec.player.player_id}`} className={styles.recommendationCard}>
+          <Card key={`taxi-${rec.player.player_id}`} id={`taxi-${rec.player.player_id}`} {...cardProps}>
             <p>
-              <strong>{rec.player.full_name}</strong> ({rec.player.position}, {rec.player.years_exp === 0 ? 'rookie' : `${rec.player.years_exp}yr`}) is on your bench and still taxi-eligible.{' '}
+              <strong>{rec.player.full_name}</strong> ({rec.player.position},{' '}
+              {rec.player.years_exp === 0 ? 'rookie' : `${rec.player.years_exp}yr`}) is on your bench and still
+              taxi-eligible.{' '}
               {rec.taxiSlotsOpen > 0
                 ? 'Move to taxi to free a bench spot.'
                 : 'No open taxi slots — nothing to do unless one opens up.'}
             </p>
-          </div>
+          </Card>
         ))}
 
       {irRecommendations.map((rec) => {
         const available = availableByPosition?.[rec.player.position] || [];
         return (
-          <div key={rec.player.player_id} className={styles.recommendationCard}>
+          <Card key={rec.player.player_id} id={`ir-${rec.player.player_id}`} {...cardProps}>
             <p>
               <strong>{rec.player.full_name}</strong> ({rec.player.injury_status}) is on your bench.{' '}
               {rec.irSlotsOpen > 0
@@ -138,11 +161,28 @@ function Recommendations({
                 </ul>
               </>
             )}
-          </div>
+          </Card>
         );
       })}
     </>
   );
+}
+
+function loadDismissed(leagueId) {
+  try {
+    const raw = localStorage.getItem(`automanager:dismissed:${leagueId}`);
+    return raw ? new Set(JSON.parse(raw)) : new Set();
+  } catch {
+    return new Set();
+  }
+}
+
+function saveDismissed(leagueId, dismissed) {
+  try {
+    localStorage.setItem(`automanager:dismissed:${leagueId}`, JSON.stringify([...dismissed]));
+  } catch {
+    // Ignore - dismissal is a convenience, not critical state.
+  }
 }
 
 export default function LeagueRosterPage() {
@@ -151,6 +191,7 @@ export default function LeagueRosterPage() {
   const { sdkReady, configError, session } = useCognito();
   const [data, setData] = useState(null);
   const [error, setError] = useState('');
+  const [dismissed, setDismissed] = useState(new Set());
 
   useEffect(() => {
     if (!sdkReady || configError) return;
@@ -163,6 +204,19 @@ export default function LeagueRosterPage() {
       .then((res) => res.json())
       .then((json) => (json.error ? setError(json.error) : setData(json)));
   }, [session, id]);
+
+  useEffect(() => {
+    setDismissed(loadDismissed(id));
+  }, [id]);
+
+  function handleDismiss(cardId) {
+    setDismissed((prev) => {
+      const next = new Set(prev);
+      next.add(cardId);
+      saveDismissed(id, next);
+      return next;
+    });
+  }
 
   if (!sdkReady || session === undefined || session === null) {
     return null;
@@ -191,6 +245,8 @@ export default function LeagueRosterPage() {
             openBenchSlots={data.roster.openBenchSlots}
             taxiRecommendations={data.roster.taxiRecommendations}
             emptyStarterSlots={data.roster.emptyStarterSlots}
+            dismissed={dismissed}
+            onDismiss={handleDismiss}
           />
 
           <PlayerSection title="Starters" players={data.roster.starters} showSlot />
