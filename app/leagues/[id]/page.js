@@ -69,6 +69,7 @@ function Recommendations({
   openBenchSlots,
   taxiRecommendations,
   emptyStarterSlots,
+  healthyOnIr,
   dismissed,
   onDismiss,
 }) {
@@ -77,7 +78,8 @@ function Recommendations({
   const hasBye = byeAlerts?.length > 0;
   const hasOpenSlot = openBenchSlots > 0;
   const hasTaxi = taxiRecommendations?.length > 0;
-  if (!hasEmpty && !hasIr && !hasBye && !hasOpenSlot && !hasTaxi) return null;
+  const hasHealthyOnIr = healthyOnIr?.length > 0;
+  if (!hasEmpty && !hasIr && !hasBye && !hasOpenSlot && !hasTaxi && !hasHealthyOnIr) return null;
 
   const cardProps = { dismissed, onDismiss };
 
@@ -125,6 +127,18 @@ function Recommendations({
           )}
         </Card>
       ))}
+
+      {hasHealthyOnIr &&
+        healthyOnIr.map((rec) => (
+          <Card key={`healthy-${rec.player.player_id}`} id={`healthy-${rec.player.player_id}`} {...cardProps}>
+            <p>
+              <strong>{rec.player.full_name}</strong> is on IR but isn't marked injured anymore.{' '}
+              {rec.hasBenchRoom
+                ? 'You have room to bring them back to the bench.'
+                : "You'll need to make room (drop someone) to bring them back."}
+            </p>
+          </Card>
+        ))}
 
       {hasTaxi &&
         taxiRecommendations.map((rec) => (
@@ -245,6 +259,7 @@ export default function LeagueRosterPage() {
             openBenchSlots={data.roster.openBenchSlots}
             taxiRecommendations={data.roster.taxiRecommendations}
             emptyStarterSlots={data.roster.emptyStarterSlots}
+            healthyOnIr={data.roster.healthyOnIr}
             dismissed={dismissed}
             onDismiss={handleDismiss}
           />

@@ -162,6 +162,13 @@ export async function GET(_request, { params }) {
 
   const emptyStarterSlots = starters.filter((s) => s.isEmpty);
 
+  // Players sitting on IR whose injury_status has cleared - they're
+  // occupying a reserve slot for no reason and could come back to the
+  // active roster.
+  const healthyOnIr = ir
+    .filter((p) => !p.injury_status)
+    .map((p) => ({ player: p, hasBenchRoom: openBenchSlots > 0 }));
+
   return NextResponse.json({
     league,
     roster: {
@@ -176,6 +183,7 @@ export async function GET(_request, { params }) {
       openBenchSlots,
       taxiRecommendations,
       emptyStarterSlots,
+      healthyOnIr,
     },
   });
 }
