@@ -8,6 +8,15 @@ import { injuryAbbreviation } from '../../../lib/injuryStatus';
 import styles from '../../shared.module.css';
 
 function PlayerRow({ player, slot }) {
+  if (player.isEmpty) {
+    return (
+      <li className={styles.playerRow}>
+        {slot && <div className={styles.slotLabel}>{slot}</div>}
+        <div className={styles.playerMeta}>Empty</div>
+      </li>
+    );
+  }
+
   return (
     <li className={styles.playerRow}>
       {slot && <div className={styles.slotLabel}>{slot}</div>}
@@ -36,15 +45,33 @@ function PlayerSection({ title, players, showSlot }) {
   );
 }
 
-function Recommendations({ irRecommendations, availableByPosition, byeAlerts, openBenchSlots }) {
+function Recommendations({
+  irRecommendations,
+  availableByPosition,
+  byeAlerts,
+  openBenchSlots,
+  taxiRecommendations,
+  emptyStarterSlots,
+}) {
+  const hasEmpty = emptyStarterSlots?.length > 0;
   const hasIr = irRecommendations?.length > 0;
   const hasBye = byeAlerts?.length > 0;
   const hasOpenSlot = openBenchSlots > 0;
-  if (!hasIr && !hasBye && !hasOpenSlot) return null;
+  const hasTaxi = taxiRecommendations?.length > 0;
+  if (!hasEmpty && !hasIr && !hasBye && !hasOpenSlot && !hasTaxi) return null;
 
   return (
     <>
       <h2 className={styles.sectionTitle}>Recommendations</h2>
+
+      {hasEmpty &&
+        emptyStarterSlots.map((s, i) => (
+          <div key={`empty-${i}`} className={styles.recommendationCard}>
+            <p>
+              Your <strong>{s.slot}</strong> slot is empty — that's guaranteed zero points. Fill it before kickoff.
+            </p>
+          </div>
+        ))}
 
       {hasOpenSlot && (
         <div className={styles.recommendationCard}>
@@ -59,7 +86,10 @@ function Recommendations({ irRecommendations, availableByPosition, byeAlerts, op
         <div key={`bye-${alert.player.player_id}`} className={styles.recommendationCard}>
           <p>
             <strong>{alert.player.full_name}</strong> ({alert.player.team}) is on bye in Week {alert.byeWeek}
-            {alert.byeWeek === alert.currentWeek ? ' — this week' : ' — next week'}. Swap him out before kickoff.
+            {alert.byeWeek === alert.currentWeek ? ' — this week' : ' — next week'}.{' '}
+            {alert.benchOptions.length > 0
+              ? 'Swap him out before kickoff.'
+              : 'No bench replacement at this position — you may need to pick someone up before kickoff.'}
           </p>
 
           {alert.benchOptions.length > 0 && (
@@ -74,6 +104,18 @@ function Recommendations({ irRecommendations, availableByPosition, byeAlerts, op
           )}
         </div>
       ))}
+
+      {hasTaxi &&
+        taxiRecommendations.map((rec) => (
+          <div key={`taxi-${rec.player.player_id}`} className={styles.recommendationCard}>
+            <p>
+              <strong>{rec.player.full_name}</strong> ({rec.player.position}, {rec.player.years_exp === 0 ? 'rookie' : `${rec.player.years_exp}yr`}) is on your bench and still taxi-eligible.{' '}
+              {rec.taxiSlotsOpen > 0
+                ? 'Move to taxi to free a bench spot.'
+                : 'No open taxi slots — nothing to do unless one opens up.'}
+            </p>
+          </div>
+        ))}
 
       {irRecommendations.map((rec) => {
         const available = availableByPosition?.[rec.player.position] || [];
@@ -147,6 +189,8 @@ export default function LeagueRosterPage() {
             availableByPosition={data.roster.availableByPosition}
             byeAlerts={data.roster.byeAlerts}
             openBenchSlots={data.roster.openBenchSlots}
+            taxiRecommendations={data.roster.taxiRecommendations}
+            emptyStarterSlots={data.roster.emptyStarterSlots}
           />
 
           <PlayerSection title="Starters" players={data.roster.starters} showSlot />

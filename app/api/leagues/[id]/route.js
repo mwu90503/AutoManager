@@ -34,7 +34,7 @@ export async function GET(_request, { params }) {
 
   const { data: players, error: playersError } = await supabase
     .from('sleeper_players')
-    .select('player_id, full_name, position, team, injury_status')
+    .select('player_id, full_name, position, team, injury_status, years_exp')
     .in('player_id', allIds.length ? allIds : ['']);
 
   if (playersError) {
@@ -43,7 +43,14 @@ export async function GET(_request, { params }) {
 
   const playerById = new Map(players.map((p) => [p.player_id, p]));
   const resolve = (pid) =>
-    playerById.get(pid) || { player_id: pid, full_name: pid, position: null, team: null, injury_status: null };
+    playerById.get(pid) || {
+      player_id: pid,
+      full_name: pid,
+      position: null,
+      team: null,
+      injury_status: null,
+      years_exp: null,
+    };
 
   const starterIds = roster.starters || [];
   const reserveIds = roster.reserve || [];
@@ -58,7 +65,16 @@ export async function GET(_request, { params }) {
   const startingSlots = (league.roster_positions || []).filter(
     (p) => p !== 'BN' && p !== 'IR' && p !== 'TAXI'
   );
-  const starters = starterIds.map((pid, i) => ({ slot: startingSlots[i] || 'FLEX', ...resolve(pid) }));
+  // Sleeper represents an unfilled starting slot as "0"/empty rather than
+  // omitting it - worth flagging since it's guaranteed zero points, not
+  // just risky ones.
+  const starters = starterIds.map((pid, i) => {
+    const slot = startingSlots[i] || 'FLEX';
+    if (!pid || pid === '0') {
+      return { slot, player_id: `empty-${i}`, full_name: null, position: null, team: null, isEmpty: true };
+    }
+    return { slot, ...resolve(pid) };
+  });
 
   const byPosition = (a, b) => positionRank(a.position) - positionRank(b.position);
 
@@ -129,6 +145,19 @@ export async function GET(_request, { params }) {
   const activeSlotsUsed = starters.length + bench.length;
   const openBenchSlots = Math.max(activeSlotsTotal - activeSlotsUsed, 0);
 
+  // Bench players still young enough for taxi (Sleeper's taxi_years
+  // setting) that aren't parked there yet - wasting a bench spot on a
+  // stash that doesn't need one.
+  const taxiYears = league.settings?.taxi_years;
+  const taxiSlotsTotal = league.settings?.taxi_slots ?? 0;
+  const taxiSlotsOpen = Math.max(taxiSlotsTotal - taxiIds.length, 0);
+  const taxiRecommendations =
+    taxiSlotsTotal > 0 && taxiYears != null
+      ? bench.filter((p) => p.years_exp != null && p.years_exp <= taxiYears).map((p) => ({ player: p, taxiSlotsOpen }))
+      : [];
+
+  const emptyStarterSlots = starters.filter((s) => s.isEmpty);
+
   return NextResponse.json({
     league,
     roster: {
@@ -141,6 +170,8 @@ export async function GET(_request, { params }) {
       availableByPosition,
       byeAlerts,
       openBenchSlots,
+      taxiRecommendations,
+      emptyStarterSlots,
     },
   });
 }

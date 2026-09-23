@@ -20,6 +20,7 @@ export async function GET(request) {
       position: p.position,
       team: p.team,
       injury_status: p.injury_status || null,
+      years_exp: p.years_exp ?? null,
       updated_at: new Date().toISOString(),
     }));
 
