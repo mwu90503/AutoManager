@@ -251,6 +251,7 @@ export default function LeagueRosterPage() {
   const [data, setData] = useState(null);
   const [error, setError] = useState('');
   const [dismissed, setDismissed] = useState(new Set());
+  const [emailStatus, setEmailStatus] = useState({ text: '', error: false });
 
   useEffect(() => {
     if (!sdkReady || configError) return;
@@ -267,6 +268,19 @@ export default function LeagueRosterPage() {
   useEffect(() => {
     setDismissed(loadDismissed(id));
   }, [id]);
+
+  async function handleEmail() {
+    setEmailStatus({ text: 'Sending...', error: false });
+    const res = await fetch('/api/notifications/send', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ league: data.league, roster: data.roster }),
+    });
+    const json = await res.json();
+    setEmailStatus(
+      res.ok ? { text: 'Sent.', error: false } : { text: json.error || 'Failed to send.', error: true }
+    );
+  }
 
   function handleDismiss(cardId) {
     setDismissed((prev) => {
@@ -296,6 +310,15 @@ export default function LeagueRosterPage() {
         <>
           <h1 className={styles.title}>{data.league.name}</h1>
           <p className={styles.subtitle}>Your Roster</p>
+
+          <p className={styles.linkRow}>
+            <button className={styles.buttonSmall} type="button" onClick={handleEmail}>
+              Email me these recommendations
+            </button>
+            {emailStatus.text && (
+              <span className={`${styles.message} ${emailStatus.error ? styles.error : ''}`}> {emailStatus.text}</span>
+            )}
+          </p>
 
           <Recommendations
             irRecommendations={data.roster.irRecommendations}
