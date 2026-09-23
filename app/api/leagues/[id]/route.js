@@ -148,23 +148,25 @@ export async function GET(_request, { params }) {
 
   // Starters guaranteed (or near-guaranteed) to score zero this week: on
   // bye (this week or next, for advance notice), or ruled Out/IR/PUP/
-  // Doubtful right now.
+  // Doubtful right now. Bye weeks only exist in the regular season, but
+  // an injury status matters just as much in preseason/playoffs, so only
+  // the bye check is gated on season type.
   const byeAlerts = [];
   const criticalStatusStarters = [];
-  if (isRegularSeason) {
-    for (const p of starters) {
-      if (p.isEmpty) continue;
+  for (const p of starters) {
+    if (p.isEmpty) continue;
 
+    if (isRegularSeason) {
       const byeWeek = byeWeekFor(p.team, league.season);
       const weeksOut = byeWeek == null ? null : byeWeek - nflState.week;
       if (weeksOut != null && weeksOut >= 0 && weeksOut <= 1) {
         byeAlerts.push({ player: p, byeWeek, currentWeek: nflState.week, benchOptions: findBenchReplacements(p) });
         continue;
       }
+    }
 
-      if (SIT_STATUSES.includes(p.injury_status)) {
-        criticalStatusStarters.push({ player: p, benchOptions: findBenchReplacements(p) });
-      }
+    if (SIT_STATUSES.includes(p.injury_status)) {
+      criticalStatusStarters.push({ player: p, benchOptions: findBenchReplacements(p) });
     }
   }
 
@@ -175,9 +177,12 @@ export async function GET(_request, { params }) {
     .map((p) => ({ player: p, benchOptions: findBenchReplacements(p) }));
 
   // Active roster (starters + bench, not IR/taxi) has room for a
-  // free-agent pickup with no drop needed.
+  // free-agent pickup with no drop needed. Empty starter slots don't
+  // count as "used" - they're already flagged separately and are just
+  // as much open capacity as an empty bench spot.
   const activeSlotsTotal = (league.roster_positions || []).filter((p) => p !== 'IR' && p !== 'TAXI').length;
-  const activeSlotsUsed = starters.length + bench.length;
+  const filledStarters = starters.filter((s) => !s.isEmpty).length;
+  const activeSlotsUsed = filledStarters + bench.length;
   const openBenchSlots = Math.max(activeSlotsTotal - activeSlotsUsed, 0);
 
   // Bench players still young enough for taxi (Sleeper's taxi_years
@@ -195,7 +200,9 @@ export async function GET(_request, { params }) {
           .map((p) => ({ player: p, taxiSlotsOpen }))
       : [];
 
-  const emptyStarterSlots = starters.filter((s) => s.isEmpty);
+  const emptyStarterSlots = starters
+    .filter((s) => s.isEmpty)
+    .map((s) => ({ ...s, benchOptions: findBenchReplacements(s) }));
 
   // Players sitting on IR whose injury_status has cleared - they're
   // occupying a reserve slot for no reason and could come back to the

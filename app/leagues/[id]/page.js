@@ -123,6 +123,7 @@ function Recommendations({
             <p>
               Your <strong>{s.slot}</strong> slot is empty — that's guaranteed zero points. Fill it before kickoff.
             </p>
+            <BenchOptions slot={s.slot} options={s.benchOptions} />
           </Card>
         ))}
 
