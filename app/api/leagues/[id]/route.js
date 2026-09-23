@@ -3,6 +3,7 @@ import { supabase } from '@/lib/supabaseClient';
 import { positionRank } from '@/lib/positionOrder';
 import { byeWeekFor } from '@/lib/byeWeeks';
 import { isReserveEligible } from '@/lib/injuryStatus';
+import { eligiblePositionsForSlot } from '@/lib/flexEligibility';
 import { getNflState } from '@/lib/sleeperClient';
 
 export async function GET(_request, { params }) {
@@ -124,24 +125,49 @@ export async function GET(_request, { params }) {
     }
   }
 
-  // Starters whose team's bye is this week or next — enough notice to
-  // swap them out before kickoff. Only starters matter here; a bye for
-  // someone already on the bench doesn't cost you anything.
   const nflState = await getNflState().catch(() => null);
-  const byeAlerts = [];
-  if (nflState?.season_type === 'regular') {
-    for (const p of starters) {
-      const byeWeek = byeWeekFor(p.team, league.season);
-      if (byeWeek == null) continue;
-      const weeksOut = byeWeek - nflState.week;
-      if (weeksOut < 0 || weeksOut > 1) continue;
+  const isRegularSeason = nflState?.season_type === 'regular';
 
-      const benchOptions = bench.filter(
-        (b) => b.position === p.position && byeWeekFor(b.team, league.season) !== nflState.week
-      );
-      byeAlerts.push({ player: p, byeWeek, currentWeek: nflState.week, benchOptions });
+  // Bench candidates for a compromised starter: eligible for that exact
+  // slot (accounting for FLEX/SUPER_FLEX accepting multiple positions,
+  // not just an exact position match) and not themselves Out/IR/PUP or
+  // on bye that week.
+  function findBenchReplacements(starter) {
+    const eligible = eligiblePositionsForSlot(starter.slot);
+    return bench.filter((b) => {
+      if (!eligible.includes(b.position)) return false;
+      if (b.injury_status === 'Out' || b.injury_status === 'IR' || b.injury_status === 'PUP') return false;
+      if (isRegularSeason && byeWeekFor(b.team, league.season) === nflState.week) return false;
+      return true;
+    });
+  }
+
+  // Starters guaranteed to score zero this week: on bye (this week or
+  // next, for advance notice), or ruled Out/IR/PUP right now.
+  const byeAlerts = [];
+  const criticalStatusStarters = [];
+  if (isRegularSeason) {
+    for (const p of starters) {
+      if (p.isEmpty) continue;
+
+      const byeWeek = byeWeekFor(p.team, league.season);
+      const weeksOut = byeWeek == null ? null : byeWeek - nflState.week;
+      if (weeksOut != null && weeksOut >= 0 && weeksOut <= 1) {
+        byeAlerts.push({ player: p, byeWeek, currentWeek: nflState.week, benchOptions: findBenchReplacements(p) });
+        continue;
+      }
+
+      if (p.injury_status === 'Out' || p.injury_status === 'IR' || p.injury_status === 'PUP') {
+        criticalStatusStarters.push({ player: p, benchOptions: findBenchReplacements(p) });
+      }
     }
   }
+
+  // Starters at real but non-guaranteed risk — a heads-up to double
+  // check before kickoff, not a hard "swap them out" like the above.
+  const riskyStatusStarters = starters
+    .filter((p) => !p.isEmpty && (p.injury_status === 'Doubtful' || p.injury_status === 'Questionable'))
+    .map((p) => ({ player: p, benchOptions: findBenchReplacements(p) }));
 
   // Active roster (starters + bench, not IR/taxi) has room for a
   // free-agent pickup with no drop needed.
@@ -184,6 +210,8 @@ export async function GET(_request, { params }) {
       irRecommendations,
       availableByPosition,
       byeAlerts,
+      criticalStatusStarters,
+      riskyStatusStarters,
       openBenchSlots,
       taxiRecommendations,
       emptyStarterSlots,
