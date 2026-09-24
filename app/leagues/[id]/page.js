@@ -302,6 +302,9 @@ export default function LeagueRosterPage() {
   const [dismissedState, setDismissedState] = useState({ day: todayKey(), daily: [], permanent: [] });
   const dismissed = new Set([...dismissedState.daily, ...dismissedState.permanent]);
   const [emailStatus, setEmailStatus] = useState({ text: '', error: false });
+  const [friendUsername, setFriendUsername] = useState('');
+  const [friendView, setFriendView] = useState(null);
+  const [friendStatus, setFriendStatus] = useState({ text: '', error: false });
 
   useEffect(() => {
     if (!sdkReady || configError) return;
@@ -353,6 +356,28 @@ export default function LeagueRosterPage() {
     });
   }
 
+  async function handleViewFriend(e) {
+    e.preventDefault();
+    setFriendStatus({ text: 'Loading...', error: false });
+    const res = await fetch(`/api/leagues/${id}/friend?username=${encodeURIComponent(friendUsername)}`);
+    const json = await res.json();
+    if (!res.ok) {
+      setFriendStatus({ text: json.error || 'Failed to load.', error: true });
+      return;
+    }
+    setFriendView(json);
+    setFriendStatus({ text: '', error: false });
+  }
+
+  function handleBackToMyRoster() {
+    setFriendView(null);
+    setFriendUsername('');
+    setFriendStatus({ text: '', error: false });
+  }
+
+  const view = friendView || data;
+  const viewingFriend = Boolean(friendView);
+
   if (!sdkReady || session === undefined || session === null) {
     return null;
   }
@@ -370,51 +395,80 @@ export default function LeagueRosterPage() {
 
       {data && (
         <>
-          <h1 className={styles.title}>{data.league.name}</h1>
-          <p className={styles.subtitle}>Your Roster</p>
+          <h1 className={styles.title}>{view.league.name}</h1>
+          <p className={styles.subtitle}>
+            {viewingFriend ? `${view.roster.team_name || friendUsername}'s Roster (snapshot, not saved)` : 'Your Roster'}
+          </p>
+
+          {viewingFriend ? (
+            <p className={styles.linkRow}>
+              <button className={styles.buttonSmall} type="button" onClick={handleBackToMyRoster}>
+                ← Back to my roster
+              </button>
+            </p>
+          ) : (
+            <form className={styles.form} onSubmit={handleViewFriend}>
+              <input
+                className={styles.input}
+                type="text"
+                placeholder="View a friend's Sleeper username"
+                value={friendUsername}
+                onChange={(e) => setFriendUsername(e.target.value)}
+                required
+              />
+              <button className={styles.buttonSmall} type="submit">
+                View
+              </button>
+            </form>
+          )}
+          {friendStatus.text && (
+            <p className={`${styles.message} ${friendStatus.error ? styles.error : ''}`}>{friendStatus.text}</p>
+          )}
 
           <div className={styles.rosterGrid}>
             <div>
-              <p className={styles.linkRow}>
-                <button className={styles.buttonSmall} type="button" onClick={handleEmail}>
-                  Email me these recommendations
-                </button>
-                {emailStatus.text && (
-                  <span className={`${styles.message} ${emailStatus.error ? styles.error : ''}`}>
-                    {' '}
-                    {emailStatus.text}
-                  </span>
-                )}
-              </p>
+              {!viewingFriend && (
+                <p className={styles.linkRow}>
+                  <button className={styles.buttonSmall} type="button" onClick={handleEmail}>
+                    Email me these recommendations
+                  </button>
+                  {emailStatus.text && (
+                    <span className={`${styles.message} ${emailStatus.error ? styles.error : ''}`}>
+                      {' '}
+                      {emailStatus.text}
+                    </span>
+                  )}
+                </p>
+              )}
 
               <Recommendations
-                irRecommendations={data.roster.irRecommendations}
-                availableByPosition={data.roster.availableByPosition}
-                byeAlerts={data.roster.byeAlerts}
-                criticalStatusStarters={data.roster.criticalStatusStarters}
-                riskyStatusStarters={data.roster.riskyStatusStarters}
-                lineupSwapRecommendations={data.roster.lineupSwapRecommendations}
-                openBenchSlots={data.roster.openBenchSlots}
-                taxiRecommendations={data.roster.taxiRecommendations}
-                emptyStarterSlots={data.roster.emptyStarterSlots}
-                healthyOnIr={data.roster.healthyOnIr}
-                dismissed={dismissed}
-                onDismiss={handleDismiss}
+                irRecommendations={view.roster.irRecommendations}
+                availableByPosition={view.roster.availableByPosition}
+                byeAlerts={view.roster.byeAlerts}
+                criticalStatusStarters={view.roster.criticalStatusStarters}
+                riskyStatusStarters={view.roster.riskyStatusStarters}
+                lineupSwapRecommendations={view.roster.lineupSwapRecommendations}
+                openBenchSlots={view.roster.openBenchSlots}
+                taxiRecommendations={view.roster.taxiRecommendations}
+                emptyStarterSlots={view.roster.emptyStarterSlots}
+                healthyOnIr={view.roster.healthyOnIr}
+                dismissed={viewingFriend ? new Set() : dismissed}
+                onDismiss={viewingFriend ? () => {} : handleDismiss}
               />
             </div>
 
             <div className={styles.rosterSections}>
               <div>
-                <PlayerSection title="Starters" players={data.roster.starters} showSlot />
+                <PlayerSection title="Starters" players={view.roster.starters} showSlot />
               </div>
               <div>
-                <PlayerSection title="Bench" players={data.roster.bench} />
+                <PlayerSection title="Bench" players={view.roster.bench} />
               </div>
               <div>
-                <PlayerSection title="IR" players={data.roster.ir} />
+                <PlayerSection title="IR" players={view.roster.ir} />
               </div>
               <div>
-                <PlayerSection title="Taxi Squad" players={data.roster.taxi} />
+                <PlayerSection title="Taxi Squad" players={view.roster.taxi} />
               </div>
             </div>
           </div>
