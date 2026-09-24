@@ -4,7 +4,12 @@ import { useState } from 'react';
 import { injuryAbbreviation } from '../../lib/injuryStatus';
 import styles from '../shared.module.css';
 
-function OsintLookup({ name, team, position }) {
+// The tail of an injury-status sentence: before a lookup, a fallback
+// clause + a button; after one, the sentence continues with the actual
+// verdict and a short "why" instead of the generic placeholder. No
+// source links shown here - the player just wants the call and the
+// reasoning, not a link list.
+function VerdictTail({ name, team, position, fallback }) {
   const [state, setState] = useState({ status: 'idle' });
 
   async function handleClick() {
@@ -25,37 +30,34 @@ function OsintLookup({ name, team, position }) {
 
   if (state.status === 'idle') {
     return (
-      <button type="button" className={styles.buttonSmall} onClick={handleClick}>
-        Get latest news
-      </button>
+      <>
+        {fallback}{' '}
+        <button type="button" className={styles.buttonSmall} onClick={handleClick}>
+          Get latest news
+        </button>
+      </>
     );
   }
 
   if (state.status === 'loading') {
-    return <p className={styles.message}>Searching...</p>;
+    return <>Searching for the latest news...</>;
   }
 
   if (state.status === 'error') {
-    return <p className={`${styles.message} ${styles.error}`}>{state.error}</p>;
+    return (
+      <>
+        {fallback} <span className={styles.error}>({state.error})</span>
+      </>
+    );
   }
 
   const { result } = state;
   return (
-    <div>
+    <>
       <span className={`${styles.verdictBadge} ${styles[`verdict${result.verdict}`]}`}>{result.verdict}</span>
-      <p className={styles.playerMeta}>{result.summary}</p>
-      {result.sources.length > 0 && (
-        <ul className={styles.list}>
-          {result.sources.map((s) => (
-            <li key={s.url} className={styles.playerMeta}>
-              <a className={styles.link} href={s.url} target="_blank" rel="noreferrer">
-                {s.title}
-              </a>
-            </li>
-          ))}
-        </ul>
-      )}
-    </div>
+      {' — '}
+      {result.summary}
+    </>
   );
 }
 
@@ -188,11 +190,15 @@ export function Recommendations({
           <Card key={`critical-${rec.player.player_id}`} id={`critical-${rec.player.player_id}`} {...cardProps}>
             <p>
               <strong>{rec.player.full_name}</strong> ({rec.player.team}) is {rec.player.injury_status}
-              {rec.player.practice_participation ? ` (Practice: ${rec.player.practice_participation})` : ''} — that's
-              guaranteed (or near-guaranteed) zero points in the <strong>{rec.player.slot}</strong> slot. Swap them
-              out before kickoff.
+              {rec.player.practice_participation ? ` (Practice: ${rec.player.practice_participation})` : ''} in the{' '}
+              <strong>{rec.player.slot}</strong> slot —{' '}
+              <VerdictTail
+                name={rec.player.full_name}
+                team={rec.player.team}
+                position={rec.player.position}
+                fallback="that's guaranteed (or near-guaranteed) zero points. Swap them out before kickoff."
+              />
             </p>
-            <OsintLookup name={rec.player.full_name} team={rec.player.team} position={rec.player.position} />
             <BenchOptions slot={rec.player.slot} options={rec.benchOptions} />
           </Card>
         ))}
@@ -213,10 +219,14 @@ export function Recommendations({
           <Card key={`risky-${rec.player.player_id}`} id={`risky-${rec.player.player_id}`} {...cardProps}>
             <p>
               <strong>{rec.player.full_name}</strong> ({rec.player.team}) is {rec.player.injury_status} this week
-              {rec.player.practice_participation ? ` (Practice: ${rec.player.practice_participation})` : ''} — verify
-              they're playing before kickoff.
+              {rec.player.practice_participation ? ` (Practice: ${rec.player.practice_participation})` : ''} —{' '}
+              <VerdictTail
+                name={rec.player.full_name}
+                team={rec.player.team}
+                position={rec.player.position}
+                fallback="verify they're playing before kickoff."
+              />
             </p>
-            <OsintLookup name={rec.player.full_name} team={rec.player.team} position={rec.player.position} />
             <BenchOptions slot={rec.player.slot} options={rec.benchOptions} />
           </Card>
         ))}
