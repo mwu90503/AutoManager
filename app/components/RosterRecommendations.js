@@ -131,7 +131,8 @@ export function Recommendations({
         criticalStatusStarters.map((rec) => (
           <Card key={`critical-${rec.player.player_id}`} id={`critical-${rec.player.player_id}`} {...cardProps}>
             <p>
-              <strong>{rec.player.full_name}</strong> ({rec.player.team}) is {rec.player.injury_status} — that's
+              <strong>{rec.player.full_name}</strong> ({rec.player.team}) is {rec.player.injury_status}
+              {rec.player.practice_participation ? ` (Practice: ${rec.player.practice_participation})` : ''} — that's
               guaranteed (or near-guaranteed) zero points in the <strong>{rec.player.slot}</strong> slot. Swap them
               out before kickoff.
             </p>
@@ -154,8 +155,9 @@ export function Recommendations({
         riskyStatusStarters.map((rec) => (
           <Card key={`risky-${rec.player.player_id}`} id={`risky-${rec.player.player_id}`} {...cardProps}>
             <p>
-              <strong>{rec.player.full_name}</strong> ({rec.player.team}) is {rec.player.injury_status} this week —
-              verify they're playing before kickoff.
+              <strong>{rec.player.full_name}</strong> ({rec.player.team}) is {rec.player.injury_status} this week
+              {rec.player.practice_participation ? ` (Practice: ${rec.player.practice_participation})` : ''} — verify
+              they're playing before kickoff.
             </p>
             <BenchOptions slot={rec.player.slot} options={rec.benchOptions} />
           </Card>
