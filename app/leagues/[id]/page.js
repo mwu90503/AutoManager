@@ -190,16 +190,17 @@ function Recommendations({
         </Card>
       )}
 
-      {/* Tier 4: move an inactive bench player to IR */}
+      {/* Tier 4: move an inactive bench/taxi player to IR */}
       {irRecommendations.map((rec) => {
         const available = availableByPosition?.[rec.player.position] || [];
         return (
           <Card key={rec.player.player_id} id={`ir-${rec.player.player_id}`} {...cardProps}>
             <p>
-              <strong>{rec.player.full_name}</strong> ({rec.player.injury_status}) is on your bench.{' '}
+              <strong>{rec.player.full_name}</strong> ({rec.player.injury_status}) is on your{' '}
+              {rec.source === 'taxi' ? 'taxi squad' : 'bench'}.{' '}
               {rec.irSlotsOpen > 0
-                ? 'Move to IR to free a bench spot.'
-                : 'No open IR slots — consider dropping a bench player instead.'}
+                ? `Move to IR to free a ${rec.source === 'taxi' ? 'taxi' : 'bench'} spot.`
+                : `No open IR slots — consider dropping a ${rec.source === 'taxi' ? 'taxi squad' : 'bench'} player instead.`}
             </p>
 
             {available.length > 0 && (
