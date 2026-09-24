@@ -1,7 +1,63 @@
 'use client';
 
+import { useState } from 'react';
 import { injuryAbbreviation } from '../../lib/injuryStatus';
 import styles from '../shared.module.css';
+
+function OsintLookup({ name, team, position }) {
+  const [state, setState] = useState({ status: 'idle' });
+
+  async function handleClick() {
+    setState({ status: 'loading' });
+    try {
+      const res = await fetch('/api/players/osint', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name, team, position }),
+      });
+      const json = await res.json();
+      if (!res.ok) throw new Error(json.error || 'Lookup failed');
+      setState({ status: 'done', result: json });
+    } catch (err) {
+      setState({ status: 'error', error: err.message });
+    }
+  }
+
+  if (state.status === 'idle') {
+    return (
+      <button type="button" className={styles.buttonSmall} onClick={handleClick}>
+        Get latest news
+      </button>
+    );
+  }
+
+  if (state.status === 'loading') {
+    return <p className={styles.message}>Searching...</p>;
+  }
+
+  if (state.status === 'error') {
+    return <p className={`${styles.message} ${styles.error}`}>{state.error}</p>;
+  }
+
+  const { result } = state;
+  return (
+    <div>
+      <span className={`${styles.verdictBadge} ${styles[`verdict${result.verdict}`]}`}>{result.verdict}</span>
+      <p className={styles.playerMeta}>{result.summary}</p>
+      {result.sources.length > 0 && (
+        <ul className={styles.list}>
+          {result.sources.map((s) => (
+            <li key={s.url} className={styles.playerMeta}>
+              <a className={styles.link} href={s.url} target="_blank" rel="noreferrer">
+                {s.title}
+              </a>
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
+  );
+}
 
 export function PlayerRow({ player, slot }) {
   if (player.isEmpty) {
@@ -136,6 +192,7 @@ export function Recommendations({
               guaranteed (or near-guaranteed) zero points in the <strong>{rec.player.slot}</strong> slot. Swap them
               out before kickoff.
             </p>
+            <OsintLookup name={rec.player.full_name} team={rec.player.team} position={rec.player.position} />
             <BenchOptions slot={rec.player.slot} options={rec.benchOptions} />
           </Card>
         ))}
@@ -159,6 +216,7 @@ export function Recommendations({
               {rec.player.practice_participation ? ` (Practice: ${rec.player.practice_participation})` : ''} — verify
               they're playing before kickoff.
             </p>
+            <OsintLookup name={rec.player.full_name} team={rec.player.team} position={rec.player.position} />
             <BenchOptions slot={rec.player.slot} options={rec.benchOptions} />
           </Card>
         ))}

@@ -203,6 +203,33 @@
   opacity: 0.7;
 }
 
+.verdictBadge {
+  display: inline-block;
+  padding: 2px 10px;
+  border-radius: 4px;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  border: 1px solid #111;
+}
+
+.verdictSTART {
+  background: #111;
+  color: #fff;
+}
+
+.verdictSIT {
+  background: #fff;
+  color: #111;
+}
+
+.verdictMONITOR {
+  background: #fff;
+  color: #666;
+  border-color: #ccc;
+  border-style: dashed;
+}
+
 .wideContainer {
   max-width: 1180px;
   margin: 0 auto;
