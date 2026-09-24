@@ -1,18 +1,19 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { injuryAbbreviation } from '../../lib/injuryStatus';
 import styles from '../shared.module.css';
 
-// The tail of an injury-status sentence: before a lookup, a fallback
-// clause + a button; after one, the sentence continues with the actual
-// verdict and a short "why" instead of the generic placeholder. No
-// source links shown here - the player just wants the call and the
-// reasoning, not a link list.
+// The tail of an injury-status sentence: fetches the Start/Sit verdict
+// automatically as soon as the card renders, so the decision is already
+// there rather than waiting on a click. "Get latest news" re-runs the
+// lookup on demand afterward (news can change through the day) - it's
+// not what triggers the first result. No source links shown - just the
+// call and the reasoning.
 function VerdictTail({ name, team, position, fallback }) {
-  const [state, setState] = useState({ status: 'idle' });
+  const [state, setState] = useState({ status: 'loading' });
 
-  async function handleClick() {
+  async function fetchVerdict() {
     setState({ status: 'loading' });
     try {
       const res = await fetch('/api/players/osint', {
@@ -28,25 +29,22 @@ function VerdictTail({ name, team, position, fallback }) {
     }
   }
 
-  if (state.status === 'idle') {
-    return (
-      <>
-        {fallback}{' '}
-        <button type="button" className={styles.buttonSmall} onClick={handleClick}>
-          Get latest news
-        </button>
-      </>
-    );
-  }
+  useEffect(() => {
+    fetchVerdict();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   if (state.status === 'loading') {
-    return <>Searching for the latest news...</>;
+    return <>Checking the latest news...</>;
   }
 
   if (state.status === 'error') {
     return (
       <>
-        {fallback} <span className={styles.error}>({state.error})</span>
+        {fallback} <span className={styles.error}>({state.error})</span>{' '}
+        <button type="button" className={styles.buttonSmall} onClick={fetchVerdict}>
+          Retry
+        </button>
       </>
     );
   }
@@ -56,7 +54,10 @@ function VerdictTail({ name, team, position, fallback }) {
     <>
       <span className={`${styles.verdictBadge} ${styles[`verdict${result.verdict}`]}`}>{result.verdict}</span>
       {' — '}
-      {result.summary}
+      {result.summary}{' '}
+      <button type="button" className={styles.buttonSmall} onClick={fetchVerdict}>
+        Get latest news
+      </button>
     </>
   );
 }
