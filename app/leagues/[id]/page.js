@@ -262,11 +262,23 @@ function loadDismissedState(leagueId) {
   const empty = { day: todayKey(), daily: [], permanent: [] };
   try {
     const raw = localStorage.getItem(`automanager:dismissed:${leagueId}`);
-    const stored = raw ? JSON.parse(raw) : empty;
-    if (stored.day !== todayKey()) {
-      return { ...stored, day: todayKey(), daily: [] };
+    if (!raw) return empty;
+    const parsed = JSON.parse(raw);
+
+    // Migrate the old plain-array format (everything permanent) into
+    // the new shape, sorting into daily/permanent by id.
+    if (Array.isArray(parsed)) {
+      return {
+        day: todayKey(),
+        daily: parsed.filter((cardId) => !isPermanentDismiss(cardId)),
+        permanent: parsed.filter(isPermanentDismiss),
+      };
     }
-    return stored;
+
+    if (parsed.day !== todayKey()) {
+      return { ...parsed, day: todayKey(), daily: [] };
+    }
+    return parsed;
   } catch {
     return empty;
   }
