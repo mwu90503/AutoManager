@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { useCognito } from '../../cognito-context';
-import { PlayerSection, Recommendations } from '../../components/RosterRecommendations';
+import { PlayerSection, Recommendations, WaiverWirePickups } from '../../components/RosterRecommendations';
 import { todayKey, isPermanentDismiss, loadDismissedState, saveDismissedState } from '../../../lib/dismissedState';
 import styles from '../../shared.module.css';
 
@@ -194,6 +194,8 @@ export default function LeagueRosterPage() {
                 onDismiss={handleDismiss}
                 readOnly={viewingFriend}
               />
+
+              {!viewingFriend && <WaiverWirePickups leagueId={id} />}
             </div>
 
             <div className={styles.rosterSections}>

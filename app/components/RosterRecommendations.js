@@ -62,6 +62,58 @@ function VerdictTail({ name, team, position, fallback }) {
   );
 }
 
+// On-demand only (button click) - waiver scans are a weekly-cadence
+// decision, not something to re-run on every page visit, and each call
+// costs a news search + an LLM call across the whole available pool.
+export function WaiverWirePickups({ leagueId }) {
+  const [state, setState] = useState({ status: 'idle' });
+
+  async function handleClick() {
+    setState({ status: 'loading' });
+    try {
+      const res = await fetch(`/api/leagues/${leagueId}/waivers`);
+      const json = await res.json();
+      if (!res.ok) throw new Error(json.error || 'Lookup failed');
+      setState({ status: 'done', result: json });
+    } catch (err) {
+      setState({ status: 'error', error: err.message });
+    }
+  }
+
+  return (
+    <div>
+      <h2 className={styles.sectionTitle}>Waiver Wire Pickups</h2>
+
+      {state.status === 'idle' && (
+        <button type="button" className={styles.buttonSmall} onClick={handleClick}>
+          Scan waiver wire
+        </button>
+      )}
+      {state.status === 'loading' && <p className={styles.message}>Scanning ESPN, Yahoo, and more...</p>}
+      {state.status === 'error' && <p className={`${styles.message} ${styles.error}`}>{state.error}</p>}
+
+      {state.status === 'done' &&
+        (state.result.recommendations.length === 0 ? (
+          <p className={styles.subtitle}>{state.result.note || 'No recommendations found.'}</p>
+        ) : (
+          <ul className={styles.list}>
+            {state.result.recommendations.map((r, i) => (
+              <li key={i} className={styles.playerRow}>
+                <div>
+                  <div className={styles.playerName}>{r.name}</div>
+                  <div className={styles.playerMeta}>
+                    {[r.position, r.team].filter(Boolean).join(' — ')}
+                  </div>
+                  <p className={styles.playerMeta}>{r.reason}</p>
+                </div>
+              </li>
+            ))}
+          </ul>
+        ))}
+    </div>
+  );
+}
+
 export function PlayerRow({ player, slot }) {
   if (player.isEmpty) {
     return (
