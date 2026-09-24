@@ -324,7 +324,7 @@ export default function LeagueRosterPage() {
   }
 
   return (
-    <div className={styles.container}>
+    <div className={styles.wideContainer}>
       <p className={styles.linkRow}>
         <Link className={styles.link} href="/leagues">
           ← My Leagues
@@ -339,34 +339,51 @@ export default function LeagueRosterPage() {
           <h1 className={styles.title}>{data.league.name}</h1>
           <p className={styles.subtitle}>Your Roster</p>
 
-          <p className={styles.linkRow}>
-            <button className={styles.buttonSmall} type="button" onClick={handleEmail}>
-              Email me these recommendations
-            </button>
-            {emailStatus.text && (
-              <span className={`${styles.message} ${emailStatus.error ? styles.error : ''}`}> {emailStatus.text}</span>
-            )}
-          </p>
+          <div className={styles.rosterGrid}>
+            <div>
+              <p className={styles.linkRow}>
+                <button className={styles.buttonSmall} type="button" onClick={handleEmail}>
+                  Email me these recommendations
+                </button>
+                {emailStatus.text && (
+                  <span className={`${styles.message} ${emailStatus.error ? styles.error : ''}`}>
+                    {' '}
+                    {emailStatus.text}
+                  </span>
+                )}
+              </p>
 
-          <Recommendations
-            irRecommendations={data.roster.irRecommendations}
-            availableByPosition={data.roster.availableByPosition}
-            byeAlerts={data.roster.byeAlerts}
-            criticalStatusStarters={data.roster.criticalStatusStarters}
-            riskyStatusStarters={data.roster.riskyStatusStarters}
-            lineupSwapRecommendations={data.roster.lineupSwapRecommendations}
-            openBenchSlots={data.roster.openBenchSlots}
-            taxiRecommendations={data.roster.taxiRecommendations}
-            emptyStarterSlots={data.roster.emptyStarterSlots}
-            healthyOnIr={data.roster.healthyOnIr}
-            dismissed={dismissed}
-            onDismiss={handleDismiss}
-          />
+              <Recommendations
+                irRecommendations={data.roster.irRecommendations}
+                availableByPosition={data.roster.availableByPosition}
+                byeAlerts={data.roster.byeAlerts}
+                criticalStatusStarters={data.roster.criticalStatusStarters}
+                riskyStatusStarters={data.roster.riskyStatusStarters}
+                lineupSwapRecommendations={data.roster.lineupSwapRecommendations}
+                openBenchSlots={data.roster.openBenchSlots}
+                taxiRecommendations={data.roster.taxiRecommendations}
+                emptyStarterSlots={data.roster.emptyStarterSlots}
+                healthyOnIr={data.roster.healthyOnIr}
+                dismissed={dismissed}
+                onDismiss={handleDismiss}
+              />
+            </div>
 
-          <PlayerSection title="Starters" players={data.roster.starters} showSlot />
-          <PlayerSection title="Bench" players={data.roster.bench} />
-          <PlayerSection title="IR" players={data.roster.ir} />
-          <PlayerSection title="Taxi Squad" players={data.roster.taxi} />
+            <div className={styles.rosterSections}>
+              <div>
+                <PlayerSection title="Starters" players={data.roster.starters} showSlot />
+              </div>
+              <div>
+                <PlayerSection title="Bench" players={data.roster.bench} />
+              </div>
+              <div>
+                <PlayerSection title="IR" players={data.roster.ir} />
+              </div>
+              <div>
+                <PlayerSection title="Taxi Squad" players={data.roster.taxi} />
+              </div>
+            </div>
+          </div>
         </>
       )}
     </div>

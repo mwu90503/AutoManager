@@ -164,3 +164,32 @@
   font-size: 11px;
   font-weight: 600;
 }
+
+.wideContainer {
+  max-width: 1180px;
+  margin: 0 auto;
+  padding: 40px 24px 60px;
+}
+
+.rosterGrid {
+  display: grid;
+  grid-template-columns: minmax(320px, 380px) 1fr;
+  gap: 48px;
+  align-items: start;
+}
+
+.rosterSections {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0 40px;
+}
+
+@media (max-width: 900px) {
+  .rosterGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .rosterSections {
+    grid-template-columns: 1fr;
+  }
+}
