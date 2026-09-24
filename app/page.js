@@ -28,15 +28,25 @@ export default function Home() {
   }
 
   return (
-    <div className={styles.container}>
+    <div className={styles.dashboardContainer}>
       <h1 className={styles.title}>AutoManager</h1>
       <p className={styles.subtitle}>Signed in as {session}</p>
 
-      <p className={styles.linkRow}>
-        <Link className={styles.link} href="/leagues">
-          My Leagues
+      <div className={styles.navGrid}>
+        <Link className={styles.navCard} href="/leagues">
+          <div className={styles.navCardTitle}>My Team</div>
+          <div className={styles.navCardDesc}>Look up your own rosters, league by league.</div>
         </Link>
-      </p>
+        <Link className={styles.navCard} href="/opponents">
+          <div className={styles.navCardTitle}>Opponents</div>
+          <div className={styles.navCardDesc}>Browse any other team in your leagues — read-only snapshots.</div>
+        </Link>
+        <Link className={styles.navCard} href="/alerts">
+          <div className={styles.navCardTitle}>Alert Center</div>
+          <div className={styles.navCardDesc}>Everything across your leagues that needs attention, in one place.</div>
+        </Link>
+      </div>
+
       <p className={styles.linkRow}>
         <Link className={styles.link} href="/leagues/import">
           Import a Sleeper league

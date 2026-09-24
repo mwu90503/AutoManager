@@ -1,0 +1,245 @@
+'use client';
+
+import { injuryAbbreviation } from '../../lib/injuryStatus';
+import styles from '../shared.module.css';
+
+export function PlayerRow({ player, slot }) {
+  if (player.isEmpty) {
+    return (
+      <li className={styles.playerRow}>
+        {slot && <div className={styles.slotLabel}>{slot}</div>}
+        <div className={styles.playerMeta}>Empty</div>
+      </li>
+    );
+  }
+
+  return (
+    <li className={styles.playerRow}>
+      {slot && <div className={styles.slotLabel}>{slot}</div>}
+      <div className={styles.playerName}>{player.full_name}</div>
+      {(player.position || player.team) && (
+        <div className={styles.playerMeta}>{[player.position, player.team].filter(Boolean).join(' — ')}</div>
+      )}
+      {player.injury_status && (
+        <div className={styles.injuryBadge}>{injuryAbbreviation(player.injury_status)}</div>
+      )}
+    </li>
+  );
+}
+
+export function PlayerSection({ title, players, showSlot }) {
+  if (!players?.length) return null;
+  return (
+    <>
+      <h2 className={styles.sectionTitle}>{title}</h2>
+      <ul className={styles.list}>
+        {players.map((p, i) => (
+          <PlayerRow key={`${p.player_id}-${i}`} player={p} slot={showSlot ? p.slot : null} />
+        ))}
+      </ul>
+    </>
+  );
+}
+
+// readOnly hides the dismiss control entirely (not just disables it) -
+// used for opponent views, where dismissing someone else's roster
+// alerts wouldn't mean anything.
+function Card({ id, dismissed, onDismiss, readOnly, children }) {
+  if (!readOnly && dismissed.has(id)) return null;
+  return (
+    <div className={styles.recommendationCard}>
+      {!readOnly && (
+        <button type="button" className={styles.dismissButton} onClick={() => onDismiss(id)} aria-label="Dismiss">
+          ×
+        </button>
+      )}
+      {children}
+    </div>
+  );
+}
+
+function BenchOptions({ slot, options }) {
+  if (!options?.length) return null;
+  return (
+    <>
+      <p className={styles.playerMeta}>On the bench, eligible for {slot}:</p>
+      <ul className={styles.list}>
+        {options.map((b) => (
+          <PlayerRow key={b.player_id} player={b} />
+        ))}
+      </ul>
+    </>
+  );
+}
+
+export function Recommendations({
+  irRecommendations,
+  availableByPosition,
+  byeAlerts,
+  criticalStatusStarters,
+  riskyStatusStarters,
+  lineupSwapRecommendations,
+  openBenchSlots,
+  taxiRecommendations,
+  emptyStarterSlots,
+  healthyOnIr,
+  dismissed,
+  onDismiss,
+  readOnly = false,
+}) {
+  const hasEmpty = emptyStarterSlots?.length > 0;
+  const hasCritical = criticalStatusStarters?.length > 0;
+  const hasBye = byeAlerts?.length > 0;
+  const hasRisky = riskyStatusStarters?.length > 0;
+  const hasSwap = lineupSwapRecommendations?.length > 0;
+  const hasOpenSlot = openBenchSlots > 0;
+  const hasIr = irRecommendations?.length > 0;
+  const hasHealthyOnIr = healthyOnIr?.length > 0;
+  const hasTaxi = taxiRecommendations?.length > 0;
+  if (
+    !hasEmpty &&
+    !hasCritical &&
+    !hasBye &&
+    !hasRisky &&
+    !hasSwap &&
+    !hasOpenSlot &&
+    !hasIr &&
+    !hasHealthyOnIr &&
+    !hasTaxi
+  ) {
+    return null;
+  }
+
+  const cardProps = { dismissed: dismissed || new Set(), onDismiss: onDismiss || (() => {}), readOnly };
+
+  return (
+    <>
+      <h2 className={styles.sectionTitle}>Recommendations</h2>
+
+      {/* Tier 1: starter guaranteed zero points - empty slot, Out/IR/PUP, or bye */}
+      {hasEmpty &&
+        emptyStarterSlots.map((s, i) => (
+          <Card key={`empty-${i}`} id={`empty-${i}`} {...cardProps}>
+            <p>
+              Slot <strong>{s.slot}</strong> is empty — that's guaranteed zero points. Fill it before kickoff.
+            </p>
+            <BenchOptions slot={s.slot} options={s.benchOptions} />
+          </Card>
+        ))}
+
+      {hasCritical &&
+        criticalStatusStarters.map((rec) => (
+          <Card key={`critical-${rec.player.player_id}`} id={`critical-${rec.player.player_id}`} {...cardProps}>
+            <p>
+              <strong>{rec.player.full_name}</strong> ({rec.player.team}) is {rec.player.injury_status} — that's
+              guaranteed (or near-guaranteed) zero points in the <strong>{rec.player.slot}</strong> slot. Swap them
+              out before kickoff.
+            </p>
+            <BenchOptions slot={rec.player.slot} options={rec.benchOptions} />
+          </Card>
+        ))}
+
+      {byeAlerts.map((alert) => (
+        <Card key={`bye-${alert.player.player_id}`} id={`bye-${alert.player.player_id}`} {...cardProps}>
+          <p>
+            <strong>{alert.player.full_name}</strong> ({alert.player.team}) is on bye in Week {alert.byeWeek}
+            {alert.byeWeek === alert.currentWeek ? ' — this week' : ' — next week'}. Swap him out before kickoff.
+          </p>
+          <BenchOptions slot={alert.player.slot} options={alert.benchOptions} />
+        </Card>
+      ))}
+
+      {/* Tier 2: risky but not guaranteed - Doubtful/Questionable starters */}
+      {hasRisky &&
+        riskyStatusStarters.map((rec) => (
+          <Card key={`risky-${rec.player.player_id}`} id={`risky-${rec.player.player_id}`} {...cardProps}>
+            <p>
+              <strong>{rec.player.full_name}</strong> ({rec.player.team}) is {rec.player.injury_status} this week —
+              verify they're playing before kickoff.
+            </p>
+            <BenchOptions slot={rec.player.slot} options={rec.benchOptions} />
+          </Card>
+        ))}
+
+      {hasSwap &&
+        lineupSwapRecommendations.map((rec) => (
+          <Card
+            key={`swap-${rec.starter.player_id}`}
+            id={`swap-${rec.starter.player_id}-${rec.bench.player_id}`}
+            {...cardProps}
+          >
+            <p>
+              <strong>{rec.bench.full_name}</strong> is projected for {rec.benchPoints.toFixed(1)} pts vs{' '}
+              <strong>{rec.starter.full_name}</strong>'s {rec.starterPoints.toFixed(1)} pts in the{' '}
+              <strong>{rec.starter.slot}</strong> slot — a {(rec.benchPoints - rec.starterPoints).toFixed(1)} point
+              gap. Consider starting {rec.bench.full_name} instead.
+            </p>
+          </Card>
+        ))}
+
+      {/* Tier 3: open bench slot */}
+      {hasOpenSlot && (
+        <Card id="open-bench-slot" {...cardProps}>
+          <p>
+            {openBenchSlots} open bench slot{openBenchSlots > 1 ? 's' : ''} — room to pick up a free agent without
+            dropping anyone.
+          </p>
+        </Card>
+      )}
+
+      {/* Tier 4: move an inactive bench/taxi player to IR */}
+      {irRecommendations.map((rec) => {
+        const available = availableByPosition?.[rec.player.position] || [];
+        return (
+          <Card key={rec.player.player_id} id={`ir-${rec.player.player_id}`} {...cardProps}>
+            <p>
+              <strong>{rec.player.full_name}</strong> ({rec.player.injury_status}) is on the{' '}
+              {rec.source === 'taxi' ? 'taxi squad' : 'bench'}.{' '}
+              {rec.irSlotsOpen > 0
+                ? `Move to IR to free a ${rec.source === 'taxi' ? 'taxi' : 'bench'} spot.`
+                : `No open IR slots — consider dropping a ${rec.source === 'taxi' ? 'taxi squad' : 'bench'} player instead.`}
+            </p>
+
+            {available.length > 0 && (
+              <>
+                <p className={styles.playerMeta}>Available {rec.player.position}s (unranked):</p>
+                <ul className={styles.list}>
+                  {available.map((c) => (
+                    <PlayerRow key={c.player_id} player={c} />
+                  ))}
+                </ul>
+              </>
+            )}
+          </Card>
+        );
+      })}
+
+      {hasHealthyOnIr &&
+        healthyOnIr.map((rec) => (
+          <Card key={`healthy-${rec.player.player_id}`} id={`healthy-${rec.player.player_id}`} {...cardProps}>
+            <p>
+              <strong>{rec.player.full_name}</strong> is on IR but isn't marked injured anymore.{' '}
+              {rec.hasBenchRoom
+                ? 'There is room to bring them back to the bench.'
+                : "It'll need a drop to bring them back."}
+            </p>
+          </Card>
+        ))}
+
+      {/* Tier 5: taxi-eligible bench players */}
+      {hasTaxi &&
+        taxiRecommendations.map((rec) => (
+          <Card key={`taxi-${rec.player.player_id}`} id={`taxi-${rec.player.player_id}`} {...cardProps}>
+            <p>
+              <strong>{rec.player.full_name}</strong> ({rec.player.position},{' '}
+              {rec.player.years_exp === 0 ? 'rookie' : `${rec.player.years_exp}yr`}) is on the bench and still
+              taxi-eligible.{' '}
+              {rec.taxiSlotsOpen > 0
+                ? 'Move to taxi to free a bench spot.'
+                : 'No open taxi slots — nothing to do unless one opens up.'}
+            </p>
+          </Card>
+        ))}
+    </>
+  );
+}

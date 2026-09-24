@@ -6,8 +6,10 @@ export async function GET(request, { params }) {
   const { id } = await params;
   const { searchParams } = new URL(request.url);
   const username = searchParams.get('username');
-  if (!username) {
-    return NextResponse.json({ error: 'username is required' }, { status: 400 });
+  const ownerId = searchParams.get('ownerId');
+  const teamName = searchParams.get('teamName');
+  if (!username && !ownerId) {
+    return NextResponse.json({ error: 'username or ownerId is required' }, { status: 400 });
   }
 
   const { data: league, error: leagueError } = await supabase
@@ -21,7 +23,7 @@ export async function GET(request, { params }) {
   }
 
   try {
-    const result = await analyzeFriendRoster(league, username);
+    const result = await analyzeFriendRoster(league, { username, ownerId, teamName });
     return NextResponse.json(result);
   } catch (err) {
     return NextResponse.json({ error: err.message }, { status: 404 });

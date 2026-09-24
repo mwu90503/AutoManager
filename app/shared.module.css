@@ -165,6 +165,44 @@
   font-weight: 600;
 }
 
+.dashboardContainer {
+  max-width: 720px;
+  margin: 0 auto;
+  padding: 60px 20px;
+}
+
+.navGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 16px;
+  margin: 24px 0 32px;
+}
+
+.navCard {
+  display: block;
+  border: 1px solid #111;
+  border-radius: 8px;
+  padding: 20px;
+  text-decoration: none;
+  color: inherit;
+}
+
+.navCard:hover {
+  background: #111;
+  color: #fff;
+}
+
+.navCardTitle {
+  font-size: 16px;
+  font-weight: 600;
+  margin-bottom: 4px;
+}
+
+.navCardDesc {
+  font-size: 13px;
+  opacity: 0.7;
+}
+
 .wideContainer {
   max-width: 1180px;
   margin: 0 auto;
