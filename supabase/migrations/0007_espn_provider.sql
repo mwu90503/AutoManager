@@ -8,9 +8,13 @@ alter table leagues add column if not exists provider text not null default 'sle
 alter table leagues add column if not exists espn_league_id text;
 alter table leagues add column if not exists espn_season text;
 
+-- Plain (non-partial) unique index: NULLs never collide in a unique
+-- constraint, so Sleeper rows (espn_league_id/espn_season both NULL)
+-- don't conflict with each other - no need for a "WHERE provider = ..."
+-- filter, which PostgREST's upsert(onConflict:) can't target anyway
+-- since it emits a plain ON CONFLICT (cols) with no predicate.
 create unique index if not exists leagues_espn_unique
-  on leagues (espn_league_id, espn_season)
-  where provider = 'espn';
+  on leagues (espn_league_id, espn_season);
 
 -- Sleeper's own player dictionary includes espn_id for some players
 -- (sparsely - confirmed ~25% coverage), used as a first-pass bridge
