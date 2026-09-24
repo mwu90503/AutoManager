@@ -22,6 +22,7 @@ export async function GET(request) {
       injury_status: p.injury_status || null,
       practice_participation: p.practice_participation || null,
       years_exp: p.years_exp ?? null,
+      espn_id: p.espn_id != null ? String(p.espn_id) : null,
       updated_at: new Date().toISOString(),
     }));
 

@@ -36,6 +36,10 @@
   font-size: 14px;
 }
 
+.inputSmall {
+  flex: 0 0 90px;
+}
+
 .button {
   padding: 9px 14px;
   border: none;

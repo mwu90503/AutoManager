@@ -14,6 +14,9 @@ export default function ImportLeaguePage() {
   const [leagues, setLeagues] = useState([]);
   const [status, setStatus] = useState({ text: '', error: false });
   const [importedLeague, setImportedLeague] = useState(null);
+  const [espnLeagueId, setEspnLeagueId] = useState('');
+  const [espnSeason, setEspnSeason] = useState(String(new Date().getFullYear()));
+  const [espnStatus, setEspnStatus] = useState({ text: '', error: false });
 
   useEffect(() => {
     if (!sdkReady || configError) return;
@@ -66,6 +69,26 @@ export default function ImportLeaguePage() {
     setImportedLeague(data);
   }
 
+  async function handleEspnImport(e) {
+    e.preventDefault();
+    setEspnStatus({ text: 'Importing league...', error: false });
+
+    const res = await fetch('/api/espn/import', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ leagueId: espnLeagueId, season: espnSeason, username: session }),
+    });
+    const data = await res.json();
+
+    if (!res.ok) {
+      setEspnStatus({ text: data.error, error: true });
+      return;
+    }
+
+    setEspnStatus({ text: `Imported "${data.league.name}".`, error: false });
+    setImportedLeague(data);
+  }
+
   if (!sdkReady || session === undefined || session === null) {
     return null;
   }
@@ -108,6 +131,33 @@ export default function ImportLeaguePage() {
             </li>
           ))}
         </ul>
+      )}
+
+      <h2 className={styles.sectionTitle}>Import an ESPN League</h2>
+      <form className={styles.form} onSubmit={handleEspnImport}>
+        <input
+          className={styles.input}
+          type="text"
+          placeholder="ESPN league ID"
+          value={espnLeagueId}
+          onChange={(e) => setEspnLeagueId(e.target.value)}
+          required
+        />
+        <input
+          className={`${styles.input} ${styles.inputSmall}`}
+          type="text"
+          placeholder="Season"
+          value={espnSeason}
+          onChange={(e) => setEspnSeason(e.target.value)}
+          required
+        />
+        <button className={styles.button} type="submit">
+          Import
+        </button>
+      </form>
+      <p className={styles.playerMeta}>League ID is in your league's URL: fantasy.espn.com/football/team?leagueId=XXXXXXX</p>
+      {espnStatus.text && (
+        <p className={`${styles.message} ${espnStatus.error ? styles.error : ''}`}>{espnStatus.text}</p>
       )}
 
       {importedLeague?.league && (
