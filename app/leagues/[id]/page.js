@@ -246,18 +246,35 @@ function Recommendations({
   );
 }
 
-function loadDismissed(leagueId) {
+function todayKey() {
+  return new Date().toISOString().slice(0, 10);
+}
+
+// Taxi dismissals mean "keep this player active, stop suggesting it" -
+// permanent. Everything else means "seen it today" - if it's still true
+// tomorrow (not actually fixed), it should reappear rather than staying
+// silently hidden forever.
+function isPermanentDismiss(cardId) {
+  return cardId.startsWith('taxi-');
+}
+
+function loadDismissedState(leagueId) {
+  const empty = { day: todayKey(), daily: [], permanent: [] };
   try {
     const raw = localStorage.getItem(`automanager:dismissed:${leagueId}`);
-    return raw ? new Set(JSON.parse(raw)) : new Set();
+    const stored = raw ? JSON.parse(raw) : empty;
+    if (stored.day !== todayKey()) {
+      return { ...stored, day: todayKey(), daily: [] };
+    }
+    return stored;
   } catch {
-    return new Set();
+    return empty;
   }
 }
 
-function saveDismissed(leagueId, dismissed) {
+function saveDismissedState(leagueId, state) {
   try {
-    localStorage.setItem(`automanager:dismissed:${leagueId}`, JSON.stringify([...dismissed]));
+    localStorage.setItem(`automanager:dismissed:${leagueId}`, JSON.stringify(state));
   } catch {
     // Ignore - dismissal is a convenience, not critical state.
   }
@@ -269,7 +286,8 @@ export default function LeagueRosterPage() {
   const { sdkReady, configError, session } = useCognito();
   const [data, setData] = useState(null);
   const [error, setError] = useState('');
-  const [dismissed, setDismissed] = useState(new Set());
+  const [dismissedState, setDismissedState] = useState({ day: todayKey(), daily: [], permanent: [] });
+  const dismissed = new Set([...dismissedState.daily, ...dismissedState.permanent]);
   const [emailStatus, setEmailStatus] = useState({ text: '', error: false });
 
   useEffect(() => {
@@ -285,7 +303,9 @@ export default function LeagueRosterPage() {
   }, [session, id]);
 
   useEffect(() => {
-    setDismissed(loadDismissed(id));
+    const state = loadDismissedState(id);
+    setDismissedState(state);
+    saveDismissedState(id, state);
   }, [id]);
 
   async function handleEmail() {
@@ -311,10 +331,11 @@ export default function LeagueRosterPage() {
   }
 
   function handleDismiss(cardId) {
-    setDismissed((prev) => {
-      const next = new Set(prev);
-      next.add(cardId);
-      saveDismissed(id, next);
+    setDismissedState((prev) => {
+      const next = isPermanentDismiss(cardId)
+        ? { ...prev, permanent: [...new Set([...prev.permanent, cardId])] }
+        : { ...prev, daily: [...new Set([...prev.daily, cardId])] };
+      saveDismissedState(id, next);
       return next;
     });
   }
