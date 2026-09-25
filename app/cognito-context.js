@@ -5,6 +5,25 @@ import Script from 'next/script';
 
 const CognitoContext = createContext(null);
 
+// Cognito's own "username" here is an opaque generated id, not the
+// email the person signed up with (the pool treats email as an alias,
+// not the real username) - the email itself lives as a user attribute.
+// Synced once per session so the backend can actually email this
+// person, since every league/roster row is keyed to the opaque
+// username, not the email.
+function syncEmail(currentUser, username) {
+  currentUser.getUserAttributes((err, attributes) => {
+    if (err) return;
+    const email = attributes?.find((a) => a.getName() === 'email')?.getValue();
+    if (!email) return;
+    fetch('/api/account/sync', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ username, email }),
+    }).catch(() => {});
+  });
+}
+
 // session: undefined = still checking, null = signed out, string = signed-in user's email
 export function CognitoProvider({ children }) {
   const [sdkReady, setSdkReady] = useState(false);
@@ -20,7 +39,9 @@ export function CognitoProvider({ children }) {
       return;
     }
     currentUser.getSession((err, sess) => {
-      setSession(!err && sess.isValid() ? currentUser.getUsername() : null);
+      const valid = !err && sess.isValid();
+      setSession(valid ? currentUser.getUsername() : null);
+      if (valid) syncEmail(currentUser, currentUser.getUsername());
     });
   }, []);
 

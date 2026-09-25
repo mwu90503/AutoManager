@@ -1,13 +1,15 @@
 import { NextResponse } from 'next/server';
-import { getActiveLeagueAnalyses } from '@/lib/rosterRecommendations';
+import { getActiveLeagueAnalyses, groupResultsByUser } from '@/lib/rosterRecommendations';
 import { getWaiverRecommendations } from '@/lib/waiverWire';
 import { formatDigestEmail } from '@/lib/emailFormat';
 import { sendEmail } from '@/lib/ses';
+import { getEmailsForUsernames } from '@/lib/appUsers';
 
 // Vercel Cron issues GET requests and sends `Authorization: Bearer $CRON_SECRET`.
 // Fires Tue/Thu/Sun; always sends regardless of content ("no matter what").
 // Tuesday covers roster housekeeping + waiver wire pickups; Thu/Sun run
-// through the actual starting lineup.
+// through the actual starting lineup. Sends each user their own digest
+// covering only their own leagues.
 export async function GET(request) {
   const authHeader = request.headers.get('authorization');
   if (authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
@@ -33,9 +35,21 @@ export async function GET(request) {
     }
   }
 
-  const { text } = formatDigestEmail(leagueResults, variant, subject);
+  const byUser = groupResultsByUser(leagueResults);
+  const emails = await getEmailsForUsernames([...byUser.keys()]);
 
-  await sendEmail({ subject, text });
+  const sent = [];
+  const skipped = [];
+  for (const [username, results] of byUser) {
+    const to = emails[username];
+    if (!to) {
+      skipped.push(username);
+      continue;
+    }
+    const { text } = formatDigestEmail(results, variant, subject);
+    await sendEmail({ to, subject, text });
+    sent.push(username);
+  }
 
-  return NextResponse.json({ sent: true, variant, leagues: leagueResults.length });
+  return NextResponse.json({ variant, sentTo: sent.length, skipped });
 }

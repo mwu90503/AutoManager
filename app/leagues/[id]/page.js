@@ -75,7 +75,7 @@ export default function LeagueRosterPage() {
     const res = await fetch('/api/notifications/send', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ league: data.league, roster }),
+      body: JSON.stringify({ league: data.league, roster, username: session }),
     });
     const json = await res.json();
     setEmailStatus(
