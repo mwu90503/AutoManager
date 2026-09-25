@@ -16,6 +16,8 @@ export default function ImportLeaguePage() {
   const [importedLeague, setImportedLeague] = useState(null);
   const [espnLeagueId, setEspnLeagueId] = useState('');
   const [espnSeason, setEspnSeason] = useState(String(new Date().getFullYear()));
+  const [espnS2, setEspnS2] = useState('');
+  const [espnSwid, setEspnSwid] = useState('');
   const [espnStatus, setEspnStatus] = useState({ text: '', error: false });
 
   useEffect(() => {
@@ -76,7 +78,13 @@ export default function ImportLeaguePage() {
     const res = await fetch('/api/espn/import', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ leagueId: espnLeagueId, season: espnSeason, username: session }),
+      body: JSON.stringify({
+        leagueId: espnLeagueId,
+        season: espnSeason,
+        username: session,
+        espnS2,
+        swid: espnSwid,
+      }),
     });
     const data = await res.json();
 
@@ -134,28 +142,107 @@ export default function ImportLeaguePage() {
       )}
 
       <h2 className={styles.sectionTitle}>Import an ESPN League</h2>
-      <form className={styles.form} onSubmit={handleEspnImport}>
-        <input
-          className={styles.input}
-          type="text"
-          placeholder="ESPN league ID"
-          value={espnLeagueId}
-          onChange={(e) => setEspnLeagueId(e.target.value)}
-          required
-        />
-        <input
-          className={`${styles.input} ${styles.inputSmall}`}
-          type="text"
-          placeholder="Season"
-          value={espnSeason}
-          onChange={(e) => setEspnSeason(e.target.value)}
-          required
-        />
+      <p className={styles.subtitle}>
+        ESPN has no public login for apps like this one, so importing needs your own league ID plus two values
+        copied out of your browser (think of them like a temporary login for this one import — not your ESPN
+        password). Every person importing their own ESPN league does this with their own account.
+      </p>
+
+      <details className={styles.helpBox}>
+        <summary className={styles.helpSummary}>How do I find my espn_s2 and SWID values?</summary>
+        <ol className={styles.helpList}>
+          <li>
+            Log into your ESPN Fantasy Football account at{' '}
+            <a className={styles.link} href="https://fantasy.espn.com" target="_blank" rel="noreferrer">
+              fantasy.espn.com
+            </a>{' '}
+            in a normal browser tab — make sure you're actually signed in.
+          </li>
+          <li>
+            Open Developer Tools:
+            <ul className={styles.helpList}>
+              <li>Chrome / Edge: press F12, or right-click the page → "Inspect"</li>
+              <li>Firefox: press F12, or right-click the page → "Inspect"</li>
+              <li>
+                Safari: turn on the Develop menu first (Safari → Settings → Advanced → "Show Develop menu"), then
+                Develop → "Show Web Inspector"
+              </li>
+            </ul>
+          </li>
+          <li>
+            Find the cookie list:
+            <ul className={styles.helpList}>
+              <li>
+                Chrome / Edge: click the <strong>Application</strong> tab, then in the left sidebar expand{' '}
+                <strong>Cookies</strong> and click <strong>https://fantasy.espn.com</strong>
+              </li>
+              <li>
+                Firefox: click the <strong>Storage</strong> tab, expand <strong>Cookies</strong>, and click{' '}
+                <strong>https://fantasy.espn.com</strong>
+              </li>
+              <li>
+                Safari: click the <strong>Storage</strong> tab, then <strong>Cookies</strong>
+              </li>
+            </ul>
+          </li>
+          <li>
+            In that list, find the rows named <strong>espn_s2</strong> and <strong>SWID</strong>. Click each one and
+            copy its <strong>Value</strong> — espn_s2 is a long string of letters/numbers; SWID looks like{' '}
+            <code>{'{XXXXXXXX-XXXX-XXXX-XXXX-XXXXXXXXXXXX}'}</code>.
+          </li>
+          <li>Paste both values into the fields below.</li>
+        </ol>
+        <p className={styles.playerMeta}>
+          Treat these like your ESPN password — don't share them with anyone you don't trust. They can stop working
+          if you log out of ESPN everywhere or change your password; if import ever fails, just repeat these steps
+          for fresh values.
+        </p>
+      </details>
+
+      <form onSubmit={handleEspnImport}>
+        <div className={styles.form}>
+          <input
+            className={styles.input}
+            type="text"
+            placeholder="ESPN league ID"
+            value={espnLeagueId}
+            onChange={(e) => setEspnLeagueId(e.target.value)}
+            required
+          />
+          <input
+            className={`${styles.input} ${styles.inputSmall}`}
+            type="text"
+            placeholder="Season"
+            value={espnSeason}
+            onChange={(e) => setEspnSeason(e.target.value)}
+            required
+          />
+        </div>
+        <div className={styles.form}>
+          <input
+            className={styles.input}
+            type="password"
+            placeholder="espn_s2 value"
+            value={espnS2}
+            onChange={(e) => setEspnS2(e.target.value)}
+            required
+          />
+          <input
+            className={styles.input}
+            type="password"
+            placeholder="SWID value"
+            value={espnSwid}
+            onChange={(e) => setEspnSwid(e.target.value)}
+            required
+          />
+        </div>
         <button className={styles.button} type="submit">
           Import
         </button>
       </form>
-      <p className={styles.playerMeta}>League ID is in your league's URL: fantasy.espn.com/football/team?leagueId=XXXXXXX</p>
+      <p className={styles.playerMeta}>
+        League ID is in your league's URL: fantasy.espn.com/football/team?leagueId=XXXXXXX
+      </p>
       {espnStatus.text && (
         <p className={`${styles.message} ${espnStatus.error ? styles.error : ''}`}>{espnStatus.text}</p>
       )}
