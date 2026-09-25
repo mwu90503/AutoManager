@@ -193,9 +193,10 @@ export default function ImportLeaguePage() {
           <li>Paste both values into the fields below.</li>
         </ol>
         <p className={styles.playerMeta}>
-          Treat these like your ESPN password — don't share them with anyone you don't trust. They can stop working
-          if you log out of ESPN everywhere or change your password; if import ever fails, just repeat these steps
-          for fresh values.
+          Treat these like your ESPN password — don't share them with anyone you don't trust. They're saved
+          (encrypted) so this league can refresh automatically each day instead of asking again every time; if they
+          ever stop working (e.g. you log out of ESPN everywhere or change your password), just re-import with
+          fresh values.
         </p>
       </details>
 
