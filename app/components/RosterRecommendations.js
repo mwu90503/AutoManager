@@ -190,6 +190,7 @@ export function Recommendations({
   criticalStatusStarters,
   riskyStatusStarters,
   lineupSwapRecommendations,
+  handcuffOpportunities,
   openBenchSlots,
   taxiRecommendations,
   emptyStarterSlots,
@@ -203,6 +204,7 @@ export function Recommendations({
   const hasBye = byeAlerts?.length > 0;
   const hasRisky = riskyStatusStarters?.length > 0;
   const hasSwap = lineupSwapRecommendations?.length > 0;
+  const hasHandcuff = handcuffOpportunities?.length > 0;
   const hasOpenSlot = openBenchSlots > 0;
   const hasIr = irRecommendations?.length > 0;
   const hasHealthyOnIr = healthyOnIr?.length > 0;
@@ -213,6 +215,7 @@ export function Recommendations({
     !hasBye &&
     !hasRisky &&
     !hasSwap &&
+    !hasHandcuff &&
     !hasOpenSlot &&
     !hasIr &&
     !hasHealthyOnIr &&
@@ -297,6 +300,24 @@ export function Recommendations({
               <strong>{rec.starter.slot}</strong> slot — a {(rec.benchPoints - rec.starterPoints).toFixed(1)} point
               gap. Consider starting {rec.bench.full_name} instead.
             </p>
+          </Card>
+        ))}
+
+      {hasHandcuff &&
+        handcuffOpportunities.map((rec) => (
+          <Card key={`handcuff-${rec.player.player_id}`} id={`handcuff-${rec.player.player_id}`} {...cardProps}>
+            <p>
+              <strong>{rec.player.full_name}</strong> ({rec.player.team}) is on the bench, and{' '}
+              {rec.ahead.map((a) => a.full_name).join(', ')} ahead of him on the depth chart{' '}
+              {rec.ahead.length > 1 ? 'are' : 'is'} now {rec.ahead[0].injury_status} — he may have a real path to
+              playing time. Worth a look before kickoff, or as a pickup priority for whoever owns him.
+            </p>
+            <VerdictTail
+              name={rec.player.full_name}
+              team={rec.player.team}
+              position={rec.player.position}
+              fallback="Check the latest for confirmation."
+            />
           </Card>
         ))}
 

@@ -15,6 +15,7 @@ function hasAnyRecommendations(roster) {
     roster.byeAlerts?.length > 0 ||
     roster.riskyStatusStarters?.length > 0 ||
     roster.lineupSwapRecommendations?.length > 0 ||
+    roster.handcuffOpportunities?.length > 0 ||
     roster.openBenchSlots > 0 ||
     roster.irRecommendations?.length > 0 ||
     roster.healthyOnIr?.length > 0 ||
@@ -39,6 +40,7 @@ function LeagueAlerts({ league, roster, dismissedState, onDismiss }) {
         criticalStatusStarters={roster.criticalStatusStarters}
         riskyStatusStarters={roster.riskyStatusStarters}
         lineupSwapRecommendations={roster.lineupSwapRecommendations}
+        handcuffOpportunities={roster.handcuffOpportunities}
         openBenchSlots={roster.openBenchSlots}
         taxiRecommendations={roster.taxiRecommendations}
         emptyStarterSlots={roster.emptyStarterSlots}

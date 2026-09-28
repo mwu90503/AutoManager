@@ -186,6 +186,7 @@ export default function LeagueRosterPage() {
                 criticalStatusStarters={view.roster.criticalStatusStarters}
                 riskyStatusStarters={view.roster.riskyStatusStarters}
                 lineupSwapRecommendations={view.roster.lineupSwapRecommendations}
+                handcuffOpportunities={view.roster.handcuffOpportunities}
                 openBenchSlots={view.roster.openBenchSlots}
                 taxiRecommendations={view.roster.taxiRecommendations}
                 emptyStarterSlots={view.roster.emptyStarterSlots}

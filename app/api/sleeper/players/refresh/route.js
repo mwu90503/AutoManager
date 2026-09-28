@@ -23,6 +23,8 @@ export async function GET(request) {
       practice_participation: p.practice_participation || null,
       years_exp: p.years_exp ?? null,
       espn_id: p.espn_id != null ? String(p.espn_id) : null,
+      depth_chart_position: p.depth_chart_position || null,
+      depth_chart_order: p.depth_chart_order ?? null,
       updated_at: new Date().toISOString(),
     }));
 
